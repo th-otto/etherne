@@ -1,0 +1,16 @@
+HISTORY.TXT                                                        ThR
+EtherNE
+
+When		Version	Who	What
+
+2002-04-11	1.13	ThR	Amended (74xx245) EtherNEC schematics.
+				Switched of driver debug printing.
+				Documented and compiled hardware test 
+				programs.
+				Consolidated makefiles.
+
+2002-03-18	1.12	ThR	Corrected crappy *.STX STing drivers
+
+2002-03-13	1.11	ThR	Added links.gif to EtherNEC schematics
+
+2002-03-11	1.10	ThR	First Release

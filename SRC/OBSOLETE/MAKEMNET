@@ -1,0 +1,62 @@
+# Makefile for MagiCNet network drivers for NE2000 on the EtherNEA or EtherNEC
+# BUS interface
+# Copyright 2002 Dr. Thomas Redelberger
+# Use it under the terms of the GNU General Public License
+# (See file COPYING.TXT)
+#
+#$Id$
+#
+
+#### Turbo C 2.0
+CC=c:\dev\c\tcc.ttp
+CFLAGS=-Ic:\dev\c\include -Iinc_mnet
+
+LINK=c:\dev\c\tlink.ttp
+LFLAGS=-v
+LIBDIR= c:\dev\c\lib
+
+#### DEVPAC 2.0
+AS=c:\dev\a\devpro\genst2.ttp
+AFLAGS=-L2
+
+#### Mupfel
+RM=rm -f
+CP=cp
+
+
+OBJS = enemnet.o ne.o nemnet.o uti.o a2mnet.o
+I2= inc_mnet
+
+etherne.mif:	$(OBJS)
+	$(LINK) $(LFLAGS) -s=0 -o=$@ $(OBJS)
+
+
+enemnet.o:	$(I2)\mnetinfo.h $(I2)\buf.h $(I2)\if.h $(I2)\new_arp.h $(I2)\ifeth.h $(I2)\sockios.h $(I2)\file.h ne.h uti.h
+
+ne.o nemnet.o:	devswit.i uti.i bus.i 8390.i
+
+ne.o:		netdev.i
+
+uti.o:
+
+a2mnet.o:	$(I2)\netinfo.h $(I2)\buf.h $(I2)\if.h
+
+
+#################################################################
+
+clean:
+	$(RM) $(OBJS)
+
+install:
+	$(CP) etherne.mif c:\gemsys\magic\xtension\etherne.mif
+
+
+#### general stuff ##############################################
+
+# order of file and option specific to DEVPAC assembler
+.s.o:
+	$(AS) $< $(AFLAGS)
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+

@@ -170,6 +170,7 @@ static struct {
 };
 
 static uint16	doTxArp = FALSE;	/* signals when we must tx an ARP request or answer */
+static uint16	waitArp = 0;		/* if > 0 signals we wait for an ARP answer */
 
 
 /*
@@ -317,17 +318,6 @@ static void cdecl my_send (PORT *port)
 	/* we check where the IP packet should go */
 	network = my_port.ip_addr & my_port.sub_mask;
 
-#if 0	/* this checking below should be done from higher layers */
-	/* no ip packets to "host 0 or ff" */
-	if ((my_port.send->hdr.ip_dest & ~my_port.sub_mask) == 0L
-	||  (my_port.send->hdr.ip_dest & ~my_port.sub_mask) == ~my_port.sub_mask) {
-		IP_DGRAM *next = my_port.send->next;
-		IP_discard (my_port.send, TRUE);
-		my_port.send = next;
-		my_port.stat_dropped++;
-		return;
-	}
-#endif
 
 /* is the ip_address in my network ? */
 	if ((my_port.send->hdr.ip_dest & my_port.sub_mask) == network) {
@@ -345,13 +335,57 @@ static void cdecl my_send (PORT *port)
 		}
 	}
 
+	/* is this a broadcast address (hostpart all ones) ? */
+	if ((my_port.send->hdr.ip_dest & ~my_port.sub_mask) == ~my_port.sub_mask) {
+		memse6 (ipEthPckt.eh.destination, 0xff, 6);
 
-	/* if we find the ether address in the cache, we can send it */
-	if ( (cachedEther = arp_cache (ip_address)) != NULL ){
+	} else {
+
+		/* if we find the ether address in the cache, we can send it */
+		if ( (cachedEther = arp_cache (ip_address)) != NULL ) {
+			memcp6 (ipEthPckt.eh.destination, cachedEther, 6);
+		} else {
+
+			/* ARP request outstanding ? */
+			if (waitArp > 0) {
+				--waitArp;
+				return;		/* then do nothing */
+			} 
+
+			/* ip_address is not in cache, need to get the MAC address of it */
+			memse6 (arpEthPckt.eh.destination, 0xff, 6);	/* broadcast */
+			arpEthPckt.arp.op_code	= ARP_OP_REQ;			/* we send a request */
+			arpEthPckt.arp.src_ip	= my_port.ip_addr;
+			memse6 (arpEthPckt.arp.dest_ether, 0, 6);		/* 0=unknown */
+			arpEthPckt.arp.dest_ip	= ip_address;
+	
+#if 0
+{	static int k;
+	if (k==0) {prntLong(ip_address); prntStr("\r\n"); k=1;}
+}
+Bconout(2, 7);	/* bellen */
+#endif
+			if (ei_start_xmit (arpEthPckt.eh.destination, 
+				(uint16) sizeof(arpEthPckt), 
+				NULL, 
+				0) == 0) {
+				/* the ARP packet is static and does not need to be dropped */
+				my_port.stat_sd_data += sizeof(arpEthPckt);
+				waitArp = 200;	/* wait at least 1 second (time slice of 5ms) for ARP reply */
+				return ;
+			}	/* if ei_start_xmit successful*/
+
+		}	/* ip in cache? */
+
+
+	}	/* broadcast address? */
+
+
+
+	/* ethernet address is established we can send it */
+	{	/* block */
 		uint8 *work;
 		int16 len1, len2;
-
-		memcp6 (ipEthPckt.eh.destination, cachedEther, 6);
 
 		work = ipEthPckt.ed;
 /* The following code assumes IP_HDR is 20 bytes! */
@@ -381,35 +415,9 @@ static void cdecl my_send (PORT *port)
 			IP_discard (my_port.send, TRUE);
 			my_port.send = next;
 			my_port.stat_sd_data += len1+len2;
-		}
+		}	/* if ei_start_xmit successful*/
 
-	} else {
-#if 1	/*	without this code, we keep ARPing for something like 192.168.1.255
-			for ever (with SMB on PC) */
-		/* ip_address is not in cache */
-		IP_DGRAM *next = my_port.send->next;			/* we throw packet away */
-		IP_discard (my_port.send, TRUE);
-		my_port.send = next;
-		my_port.stat_dropped++;
-
-		/* but try to get the MAC address of it */
-#endif
-		memse6 (arpEthPckt.eh.destination, 0xff, 6);	/* broadcast */
-		arpEthPckt.arp.op_code	= ARP_OP_REQ;			/* we send a request */
-		arpEthPckt.arp.src_ip	= my_port.ip_addr;
-		memse6 (arpEthPckt.arp.dest_ether, 0, 6);		/* 0=unknown */
-		arpEthPckt.arp.dest_ip	= ip_address;
-
-		ei_start_xmit (arpEthPckt.eh.destination, (uint16) sizeof(arpEthPckt), NULL, 0);
-#if 0
-{	static int k;
-	if (k==0) {prntLong(ip_address); prntStr("\r\n"); k=1;}
-}
-Bconout(2, 7);	/* bellen */
-#endif
-		my_port.stat_sd_data += sizeof(arpEthPckt);
-
-	}	/* if..ip_address in cache */
+	}	/* block */
 
 
 }
@@ -551,7 +559,10 @@ long  process_arp (ARP * arp, int16 length)
 		arp_enter (arp->src_ip, arp->src_ether);
 
 	/* if the sender answered then we do not */
-	if (arp->op_code == ARP_OP_ANS) return EARPOK;
+	if (arp->op_code == ARP_OP_ANS) {
+		waitArp = 0;
+		return EARPOK;
+	}
 
 	/* now we are going to answer */
 	memcp6 (arpEthPckt.eh.destination, arp->src_ether, 6);

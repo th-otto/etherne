@@ -3,6 +3,9 @@ EtherNE
 
 When		Version	Who	What
 
+2004-04-17	1.15	ThR     Amended STinG drivers for IP 
+                                broadcasting
+
 2002-06-08	1.14	ThR	Optimisations to ENEC.STX and 
 				ENEC.MIF drivers.
 				Faster Versions ENEC3.STX and

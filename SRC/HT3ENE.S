@@ -93,8 +93,9 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 * hardware test from terminal 
 *********************************************************************************
 
-test3		bsr	ei_probe1
-		bsr	ei_open
+test3		jsr	ei_probe1
+		jsr	ei_open
+
 
 .t1		WaitKey
 		cmp.b	#'x',d0
@@ -105,16 +106,18 @@ test3		bsr	ei_probe1
 		beq.b	.c2
 		bra.b	.t1
 
-.c1
-		bsr	ei_interrupt
+.c1		jsr	ei_interrupt
 		bra.b	.t1
 
 .c2		move	#NtstPacket,d0
 		lea	tstPacket,a0
-		bsr	ei_start_xmit
+		moveq	#0,d1
+		suba.l	a1,a1
+		jsr	ei_start_xmit
 		bra.b	.t1
+
 		
-.quit		bsr	ei_close
+.quit		jsr	ei_close
 		rts
 
 
@@ -128,8 +131,8 @@ test3		bsr	ei_probe1
 nvbls		EQU	$454		; (w) number of vbl slots (unused)
 _vblqueue	EQU	$456		; (l) points to array of vbl slots (unused)
 
-test3		bsr	ei_probe1
-		bsr	ei_open
+test3		jsr	ei_probe1
+		jsr	ei_open
 
 * install receiver in vertical blank queue
 		move.l	_vblqueue\w,a0		; get address of first slot
@@ -155,7 +158,9 @@ test3		bsr	ei_probe1
 
 .c2		move	#NtstPacket,d0
 		lea	tstPacket,a0
-		bsr	ei_start_xmit
+		moveq	#0,d1
+		suba.l	a1,a1
+		jsr	ei_start_xmit
 		bra.b	.t1
 
 
@@ -170,7 +175,7 @@ test3		bsr	ei_probe1
 		clr.l	(a0)			; yes, deinstall it
 .b2		dbra	d0,.t2
 
-.quit		bsr	ei_close
+.quit		jsr	ei_close
 		rts
 
 

@@ -1,21 +1,15 @@
 *********************************************************************************
-* Bus access macros for ST/TT/Falcon Cartridge Port for register base hardware	*
-* Version for Lyndon Amsdon's and mine NE2000 interface hardware for the	*
-* Catridge Port. This hardware supports only fast "newer" NE2000 (clone) cards	*
+* Bus access macros for Hades for register base hardware on the ISA bus		*
+* This hardware supports all(?) NE2000 (clone) cards				*
 *										*
-* Version for hardware to generate "A0" from /UDS. Worked on ST and STE 	*
-* but did not on the Falcon							*
-*										*
-*	Copyright 2001 Dr. Thomas Redelberger					*
+*	Copyright 2002 Dr. Thomas Redelberger					*
 *	Use it under the terms of the GNU General Public License		*
 *	(See file COPYING.TXT)							*
 *										*
 * processor registers are used as follows:					*
-*	d6.w:	will be used temporarily;  do not use it!			*
-*	d7.w:	will be used temporarily;  do not use it!			*
 *										*
-*	a5:	will point to ROM3 at $FB0000;	do not change it!		*
-*	a6:	will point to ROM4 at $FA0000;	do not change it!		*
+*	a5:	will point to ISA_BASE+NE_IO_BASE	; do not change it!	*
+*	a6:	will be used temporarily					*
 *										*
 *										*
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
@@ -24,16 +18,51 @@
 * $Id$
 *
 
+* From the Hades Manual:
+*
+* Der Hades hat ja neben 4 PCI auch 2 ISA Schnittstellen.
+* Die sind folgendermassen dokumentiert:
+* 
+* ISA-Bus
+* *********************************************************************
+* DMA wird auf dem ISA-Bus nicht untersuetzt. Saemtliche Interruptsignale
+* eines Slots sind zusammengefasst und werden der STMFP zugefuehrt.
+* 
+* Slot        STMFP-Anschluss
+* -------------------------------
+* ISA1        IO3 Pin 28
+* ISA2        IO7 Pin 32
+* 
+* Bei Byt-Zugriffen im I/O-Bereich $FFF3'0000 - $FFF3'FFFF werden die
+* Byts beim Lesen und beim Schreiben von und nach SD0-7 transferiert,
+* sowohl bei high wie auch by low Byt Zugriffen. Dies ist z.B. fuer
+* ET4000 Grafikkarten mit NVDI noetig.
+* Im Rest dieses Bereichs wird beim Schreiben das Byt auf der anderen
+* Wordhaelfte ebenfalls ausgegeben.
+*  
+* Adressen I/O    : $FFF0'0000-$FFF7'FFFF
+* Adressen Mem    : $FF00'0000-$FF7F'FFFF
+* Bus-Breite    : 16 Bit
+* Groesse I/O    : 8x64 KiloByt gespiegelt
+* Groesse Mem    : 8 MegaByt
+* Burstmode    : Nein
+* Transferrate    : 5-?
+* Cachable    : Normal Nein, aber moeglich
+* 
+
+
 *
 * manifest constants
 *
+
+BUGGY_HW	EQU	1		; if defined enables code to handle buggy hardware
 
 *
 * hardware addresses
 *
 
-rom4		EQU	$00fa0000	; ROM4 base address
-rom3		EQU	$00fb0000	; ROM3 base address
+ISA_BASE	EQU	$FFF30000	; ISA base address for Hades
+NE_IO_BASE	EQU	$300		; if your card is somewhere else change it.
 
 *
 * macros
@@ -45,13 +74,14 @@ lockBUS		MACRO
 		bne	.doNothing		; if somebody owns the bus we quit
 		ENDM
 
+
 lockBUSWait	MACRO
 * there should be a timeout based on _hz_200 (and then branch to .doNothing)
 
 .lt1\@		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
 		beq.b	.lc1\@			; if somebody owns the bus we *wait*
 
-.lwait\@	bsr	_appl_yield		; wait
+		bsr	_appl_yield		; wait
 		bra.b	.lt1\@
 
 .lc1\@						; proceed
@@ -59,53 +89,55 @@ lockBUSWait	MACRO
 
 
 unlockBUS	MACRO
-		sf	DVS+lcl_irqlock		; let other tasks access Cartridge Port
+		sf	DVS+lcl_irqlock		; let other tasks access this device
 		ENDM
+
 
 unlockBUSWait	MACRO
-		sf	DVS+lcl_irqlock		; let other tasks access Cartridge Port
+		sf	DVS+lcl_irqlock		; let other tasks access this device
 		ENDM
 
 
-RxBUS		EQUR	d6
-RyBUS		EQUR	d7
+RxBUS		EQUR	d6			; unused here
+RyBUS		EQUR	d7			; unused here
 RcBUS		EQUR	a5
-RdBUS		EQUR	a6
+RdBUS		EQUR	a6			; used temporarily
 
 
 ldBUSRegs	MACRO				; for faster access to hardware
-		lea	rom3,RcBUS
-		lea	rom4,RdBUS
+		lea	ISA_BASE+NE_IO_BASE,RcBUS
 		ENDM
 
 
 putBUS		MACRO
-		move.w	#(\2)<<8,RyBUS		; move ISA address to bits 8-15
-		move.b	\1,RyBUS		; merge in data
-		tst.b	0(RcBUS,RyBUS.w)	; write by reading
+		move.b	\1,(\2)(RcBUS)
 		ENDM
 
 
 putMore		MACRO
-		move.b	\1,RyBUS		; merge in data
-		tst.b	0(RcBUS,RyBUS.w)	; write by reading
+		move.b	\1,(\2)(RcBUS)
+		ENDM
+
+
+putBUSi		MACRO
+		putBUS	#\1,\2
 		ENDM
 
 
 getBUS		MACRO
-		move.b	(\1)<<8(RdBUS),\2	; read from CP
+		move.b	(\1)(RcBUS),\2
 		ENDM
 
 
 getMore		MACRO
-		move.b	(\1)<<8(RdBUS),\2	; read from CP
+		move.b	(\1)(RcBUS),\2
 		ENDM
 
 *
 * macro to deselect an interface
 *
 deselBUS	MACRO
-* empty as the cartridge port does not need deselecting
+* empty as the Hades ISA bus does not need deselecting
 		ENDM
 
 
@@ -121,31 +153,30 @@ deselBUS	MACRO
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 	
 RAM2NE		MACRO
-		ext.l	\2			; clear upper word + test for 0
-		subq.w	#2,\2			; first two puts are outside loop
-		ble	.doNothing\@
-		putBUS	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
+		ext.l	\2			; clear upper word
+		ble	.doNothing\@		; nothing to do?
+
+		lea	(NE_DATAPORT)(RcBUS),RdBUS
 
 * put the packet; optimized for speed, we do 8 bytes at once
 		ror.l	#3,\2			; store remainder in upper word
 		bra.b	.Rb1\@
 
-.Rt1\@		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
+.Rt1\@		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
+		move.b	(\1)+,(RdBUS)
 .Rb1\@		dbra	\2,.Rt1\@
 
 		clr.w	\2			; prepare for remainder
 		rol.l	#3,\2			; restore remainder bits
 		bra.b	.Rb2\@
 
-.Rt2\@		putMore	(\1)+,NE_DATAPORT	; put the remaining bytes
+.Rt2\@		move.b	(\1)+,(RdBUS)		; put the remaining bytes
 .Rb2\@		dbra	\2,.Rt2\@
 
 .doNothing\@
@@ -156,27 +187,23 @@ RAM2NE		MACRO
 ******** NE2RAM *****************************************************************
 * This is a macro for speed
 * get # of bytes in register arg2 to RAM location pointed to by arg1.
-* *** A first getBUS MUST already have been done! ***
 *
 * in:	arg1	address register destination address
 *	arg2	data register (w) # of bytes to get
 *
+* both registers get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
-OPTREAD		EQU	1
-
 NE2RAM		MACRO
-	IFNE	OPTREAD
-		lea	NE_DATAPORT<<8(RdBUS),RdBUS	; adjust register to point to data bus
-	ENDC
+		lea	(NE_DATAPORT)(RcBUS),RdBUS	; register to point to data bus
+		ext.l	\2			; clear upper word
+		ble.b	.doNothing\@		; nothing to do?
 
 * get the Packet; optimized for speed, we do 8 bytes at once.
-		ext.l	\2			; clear upper word
 		ror.l	#3,\2			; store remainder in upper word
 		bra.b	.Nb1\@
 
-.Nt1\@
-	IFNE	OPTREAD
+.Nt1\@		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
@@ -184,34 +211,19 @@ NE2RAM		MACRO
 		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-	ELSEIF
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-		getMore	NE_DATAPORT,(\1)+
-	ENDC
 .Nb1\@		dbra	\2,.Nt1\@
 
 		clr.w	\2				; prepare for remainder
-		rol.l	#3,\2				; restore remainder bits
+* rol.l #2 instead of #3 because we write TWO bytes in a loop iteration not a byte
+* thus the lowest significant bit (which shall be 0 anyway) is not used
+		rol.l	#2,\2				; restore remainder bits
 		bra.b	.Nb2\@
 
-.Nt2\@
-	IFNE	OPTREAD
+.Nt2\@		move.b	(RdBUS),(\1)+
 		move.b	(RdBUS),(\1)+
-	ELSEIF
-		getMore	NE_DATAPORT,(\1)+		; get the remaining bytes
-	ENDC
 .Nb2\@		dbra	\2,.Nt2\@
 
-	IFNE	OPTREAD
-		lea	-(NE_DATAPORT<<8)(RdBUS),RdBUS	; restore register
-	ENDC
+.doNothing\@
 		ENDM
 
 

@@ -289,7 +289,7 @@ ei_start_xmit	move.w	d0,d2			; save arg
 	IFGE	TXDEBPRT-3
 		PrL	_hz_200\w
 		PrA	<" Tx l1: ">
-		PrW	d0
+		PrW	d2
 		PrA	<" l2: ">
 		PrW	d1
 	ENDC
@@ -777,17 +777,17 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 
 * check if next frame is within start and stop
 		cmp.b	lcl_rx_start_page(RitDVS),RrxNextFrm
-		bcs.b	.err
+		bcs	.err
 		cmp.b	lcl_stop_page(RitDVS),RrxNextFrm
-		bhi.b	.err
+		bhi	.err
 
 * we should also check here if CountHi is consistent with NextFrm and ReadPg (sic!)
 
 * check for good ethernet packet length
 		cmp	#64,RrxPktLen			; check for bogus length
-		bcs.b	.err
+		bcs	.err
 		cmp	#1518,RrxPktLen			; 6(eth)+6(eth)+2(type)+1500+4(crc)
-		bhi.b	.err
+		bhi	.err
 
 
 .getPkt		; here we assume things are OK
@@ -832,9 +832,10 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		movem.l	(sp)+,Rrx			; restore registers
 		rts
 
+
 debPrint	MACRO
 		IFGE	RXDEBPRT-2
-		PrA	\1
+		PrA	<\1>
 		bsr	eirDumpState
 		ENDC
 		ENDM
@@ -847,6 +848,7 @@ debPrint	MACRO
 .err
 		PrS	.m1(pc)
 		bra	.skip
+
 	ELSEIF
 .err
 		debPrint	<9,"RxX">
@@ -855,7 +857,7 @@ debPrint	MACRO
 		and.b	#$ff-ENRSR_PHY-ENRSR_DEF,d0	; do not care phys/multi., defer.
 		cmp.b	#ENRSR_RXOK,d0			; only his should be set
 		bne.b	.e2				; hopeless
- list -
+
 		; here there is still a chance
 		move.b	RrxPktLen,RrxNextFrm		; fix Next
 		sub.b	RrxReadPg,RrxPktLen		; calculate Count Hi Byte
@@ -886,7 +888,9 @@ debPrint	MACRO
 
 
 * this is the brute force method to skip the junk and try to synchronise again
-.e2		move.b	lcl_current_page(RitDVS),RrxNextFrm
+.e2
+		debPrint	<9,"RxZ">
+		move.b	lcl_current_page(RitDVS),RrxNextFrm
 		bra	.skip
 
 

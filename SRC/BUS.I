@@ -1,8 +1,8 @@
 *********************************************************************************
-* Bus access macros for Milan for register base hardware on the ISA bus		*
+* Bus access macros for Hades for register base hardware on the ISA bus		*
 * This hardware supports all(?) NE2000 (clone) cards				*
 *										*
-*	Copyright 2002 Mariusz Buras, Dr. Thomas Redelberger			*
+*	Copyright 2002 Dr. Thomas Redelberger					*
 *	Use it under the terms of the GNU General Public License		*
 *	(See file COPYING.TXT)							*
 *										*
@@ -15,8 +15,41 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: busenem.i 1.1 2002/06/08 16:26:52 Thomas Exp Thomas $
+* $Id$
 *
+
+* From the Hades Manual:
+*
+* Der Hades hat ja neben 4 PCI auch 2 ISA Schnittstellen.
+* Die sind folgendermassen dokumentiert:
+* 
+* ISA-Bus
+* *********************************************************************
+* DMA wird auf dem ISA-Bus nicht untersuetzt. Saemtliche Interruptsignale
+* eines Slots sind zusammengefasst und werden der STMFP zugefuehrt.
+* 
+* Slot        STMFP-Anschluss
+* -------------------------------
+* ISA1        IO3 Pin 28
+* ISA2        IO7 Pin 32
+* 
+* Bei Byt-Zugriffen im I/O-Bereich $FFF3'0000 - $FFF3'FFFF werden die
+* Byts beim Lesen und beim Schreiben von und nach SD0-7 transferiert,
+* sowohl bei high wie auch by low Byt Zugriffen. Dies ist z.B. fuer
+* ET4000 Grafikkarten mit NVDI noetig.
+* Im Rest dieses Bereichs wird beim Schreiben das Byt auf der anderen
+* Wordhaelfte ebenfalls ausgegeben.
+*  
+* Adressen I/O    : $FFF0'0000-$FFF7'FFFF
+* Adressen Mem    : $FF00'0000-$FF7F'FFFF
+* Bus-Breite    : 16 Bit
+* Groesse I/O    : 8x64 KiloByt gespiegelt
+* Groesse Mem    : 8 MegaByt
+* Burstmode    : Nein
+* Transferrate    : 5-?
+* Cachable    : Normal Nein, aber moeglich
+* 
+
 
 *
 * manifest constants
@@ -28,7 +61,7 @@ BUGGY_HW	EQU	1		; if defined enables code to handle buggy hardware
 * hardware addresses
 *
 
-ISA_BASE	EQU	$80000000	; ISA base address for Milan
+ISA_BASE	EQU	$FFF30000	; ISA base address for Hades
 NE_IO_BASE	EQU	$300		; if your card is somewhere else change it.
 
 *
@@ -77,12 +110,12 @@ ldBUSRegs	MACRO				; for faster access to hardware
 
 
 putBUS		MACRO
-		move.b	\1,(\2)^3(RcBUS)
+		move.b	\1,(\2)(RcBUS)
 		ENDM
 
 
 putMore		MACRO
-		move.b	\1,(\2)^3(RcBUS)
+		move.b	\1,(\2)(RcBUS)
 		ENDM
 
 
@@ -92,19 +125,19 @@ putBUSi		MACRO
 
 
 getBUS		MACRO
-		move.b	(\1)^3(RcBUS),\2
+		move.b	(\1)(RcBUS),\2
 		ENDM
 
 
 getMore		MACRO
-		move.b	(\1)^3(RcBUS),\2
+		move.b	(\1)(RcBUS),\2
 		ENDM
 
 *
 * macro to deselect an interface
 *
 deselBUS	MACRO
-* empty as the Milan ISA bus does not need deselecting
+* empty as the Hades ISA bus does not need deselecting
 		ENDM
 
 
@@ -123,7 +156,7 @@ RAM2NE		MACRO
 		ext.l	\2			; clear upper word
 		ble	.doNothing\@		; nothing to do?
 
-		lea	(NE_DATAPORT)^3(RcBUS),RdBUS
+		lea	(NE_DATAPORT)(RcBUS),RdBUS
 
 * put the packet; optimized for speed, we do 8 bytes at once
 		ror.l	#3,\2			; store remainder in upper word
@@ -162,7 +195,7 @@ RAM2NE		MACRO
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
 NE2RAM		MACRO
-		lea	(NE_DATAPORT)^3(RcBUS),RdBUS	; register to point to data bus
+		lea	(NE_DATAPORT)(RcBUS),RdBUS	; register to point to data bus
 		ext.l	\2			; clear upper word
 		ble.b	.doNothing\@		; nothing to do?
 

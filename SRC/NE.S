@@ -21,7 +21,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: ne.s 1.1 2002/03/24 13:48:44 Thomas Exp Thomas $
+* $Id: ne.s 1.3 2002/06/08 16:12:22 Thomas Exp Thomas $
 *
 * descriptions:
 *
@@ -321,24 +321,24 @@ ei_start_xmit	move.w	d0,d2			; save arg
 		putBUS	d0,EN0_RCNTLO		; DMA count
 		lsr.w	#8,d0
 		putBUS	d0,EN0_RCNTHI		; "
-		putBUS	#0,EN0_RSARLO		; DMA destination
+		putBUSi	0,EN0_RSARLO		; DMA destination
 		move.b	DVS+lcl_tx_start_page,d0
 		putBUS	d0,EN0_RSARHI		; 8390 page to tx from
 * start remote DMA write
-		putBUS	#E8390_RWRITE+E8390_START,E8390_CMD
+		putBUSi	E8390_RWRITE+E8390_START,E8390_CMD
 
 		RAM2NE	a2,d2			; put ethernet packet first  portion
 		RAM2NE	a1,d1			; put ethernet packet second portion
 
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; ack intr.
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR	; ack intr.
 
 		putBUS	d3,EN0_TCNTLO		; transmit count
 		lsr.w	#8,d3
 		putBUS	d3,EN0_TCNTHI		; "
 		; 8390 page to tx from was already set in NS8390_init
 * start transmitter
-		putBUS	#E8390_NODMA+E8390_TRANS+E8390_START,E8390_CMD
+		putBUSi	E8390_NODMA+E8390_TRANS+E8390_START,E8390_CMD
 	IFGE	TXDEBPRT-3
 		PrA	<" start",13,10>
 	ENDC
@@ -448,7 +448,7 @@ ei_interrupt	lockBUS				; aquire Bus, jumps to .doNothing
 		PrS	crlf(pc)
 	ENDC
 		addq.w	#1,lcl_es_rx_errors(RitDVS)	; that is all we do
-		putBUS	#ENISR_RX_ERR,EN0_ISR	; ack intr.
+		putBUSi	ENISR_RX_ERR,EN0_ISR	; ack intr.
 
 
 .c2		mtst	ENISR_TX,RitInts	; TX finished
@@ -490,7 +490,7 @@ ei_interrupt	lockBUS				; aquire Bus, jumps to .doNothing
 		and	d1,d0
 		add	d0,lcl_es_rx_missed_errors(RitDVS)
 
-		putBUS	#ENISR_COUNTERS,EN0_ISR	; ack intr.
+		putBUSi	ENISR_COUNTERS,EN0_ISR	; ack intr.
 
 
 .c5		mtst	ENISR_RDC,RitInts
@@ -502,7 +502,7 @@ ei_interrupt	lockBUS				; aquire Bus, jumps to .doNothing
 		PrB	RitInts
 		PrS	crlf(pc)
 	ENDC
-		putBUS	#ENISR_RDC,EN0_ISR	; ignore RDC interrupts that make it here
+		putBUSi	ENISR_RDC,EN0_ISR	; ignore RDC interrupts that make it here
 
 .c6
 .exit		deselBUS			; deselect Bus interface
@@ -536,7 +536,7 @@ ei_interrupt	lockBUS				; aquire Bus, jumps to .doNothing
 RteTxsr		EQUR	d1		; temporary
 
 ei_tx_err	getBUS	EN0_TSR,RteTxsr
-		putBUS	#ENISR_TX_ERR,EN0_ISR		; Ack intr.
+		putBUSi	ENISR_TX_ERR,EN0_ISR		; Ack intr.
 		sf	dev_tbusy(RitDVS)		; NE is available for next tx
 
 		mtst	ENTSR_ABT,RteTxsr
@@ -628,7 +628,7 @@ RtiStts		EQUR	d1		; temporary
 
 
 ei_tx_intr	getBUS	EN0_TSR,RtiStts		; first get status for this one
-		putBUS	#ENISR_TX,EN0_ISR	; Ack intr.
+		putBUSi	ENISR_TX,EN0_ISR	; Ack intr.
 		sf	dev_tbusy(RitDVS)	; NE is available for next tx
 
 * Minimize Tx latency: update the statistics after we restart TXing
@@ -728,7 +728,7 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		move.b	lcl_current_page(RitDVS),RrxReadPg	; start reading where writing should have commenced
 
 
-.t1		putBUS	#E8390_NODMA+E8390_PAGE1+E8390_START,E8390_CMD	; switch to page 1
+.t1		putBUSi	E8390_NODMA+E8390_PAGE1+E8390_START,E8390_CMD	; switch to page 1
 	IFNE	PARANOIA
 		move	sr,d1					; save status register
 		ori	#$700,sr				; disable all ints.
@@ -741,7 +741,7 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		bne.b	.t0
 		move	d1,sr					; reenable ints.
 	ENDC
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD	; revert to page 0
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD	; revert to page 0
 
 * when we have read up to CurrPg we are done
 		cmp.b	lcl_current_page(RitDVS),RrxReadPg	; Read all the frames?
@@ -752,11 +752,11 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 	IFD	BUGGY_HW
 		moveq	#0,RrxJnk8990			; assume no Hdr junk
 	ENDC
-		putBUS	#N8390Hdr,EN0_RCNTLO
+		putBUSi	N8390Hdr,EN0_RCNTLO
 		putBUS	d0,EN0_RCNTHI			; Hdr is only some bytes
 		putBUS	d0,EN0_RSARLO			; Hdr is on page boundary
 		putBUS	RrxReadPg,EN0_RSARHI
-		putBUS	#E8390_RREAD+E8390_START,E8390_CMD ; start remote DMA Read
+		putBUSi	E8390_RREAD+E8390_START,E8390_CMD ; start remote DMA Read
 
 		getBUS	NE_DATAPORT,d0
 		move.b	d0,rxHdrSts(sp)			; first: status byte
@@ -766,8 +766,8 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		lsl.w	#8,RrxPktLen			; Count Hi in upper byte
 		move.b	d0,RrxPktLen			; merge in Count Lo byte
 * RrxPktLen is the length of the packet data to *follow* the header (incl. CRC)
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
 
 * check status (only $01 and $21 is good)
 		move.b	rxHdrSts(sp),d0
@@ -796,6 +796,9 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		bsr	eirDumpState
 	ENDC
 
+		addq.w	#1,RrxPktLen			; round up to even
+		and.w	#$fffe,RrxPktLen
+
 * implied arg: RrxPktLen (d2)
 * implied arg: RrxReadPg (d4)
 * implied arg: RrxJnk8990 (d1)
@@ -823,7 +826,7 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 	ENDC
 
 
-.exit		putBUS	#ENISR_RX+ENISR_RX_ERR,EN0_ISR	; ack interrupt
+.exit		putBUSi	ENISR_RX+ENISR_RX_ERR,EN0_ISR	; ack interrupt
 
 		deAlloc	rxNLcl				; pop local vars
 		movem.l	(sp)+,Rrx			; restore registers
@@ -951,7 +954,7 @@ ei_rx_overrun	Alloc	roNLcl				; locals vars
 		and	#E8390_TRANS,d0
 		move	d0,roWasTxing(sp)		; find out if transmit is in progress
 		
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; stop
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; stop
 
 	IFGE	RXDEBPRT-1
 		PrA	<"Receiver overrun",13,10>
@@ -982,20 +985,20 @@ ei_rx_overrun	Alloc	roNLcl				; locals vars
 
 * Have to enter loopback mode and then restart the NIC before
 * you are allowed to slurp packets up off the ring.
-.c1		putBUS	#E8390_TXOFF,EN0_TXCR
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD	; restart
+.c1		putBUSi	E8390_TXOFF,EN0_TXCR
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD	; restart
 
 * Clear the Rx ring of all the debris, and ack the interrupt.
 		bsr	ei_receive
-		putBUS	#ENISR_OVER,EN0_ISR
+		putBUSi	ENISR_OVER,EN0_ISR
 
 * Leave loopback mode, and resend any packet that got stopped.
-		putBUS	#E8390_TXCONFIG,EN0_TXCR 
+		putBUSi	E8390_TXCONFIG,EN0_TXCR 
 
 		tst	roMustResend(sp)
 		beq.b	.c2
  
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_START+E8390_TRANS,E8390_CMD
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START+E8390_TRANS,E8390_CMD
 
 .c2		deAlloc	roNLcl			; pop local vars
 		rts
@@ -1049,7 +1052,7 @@ set_multicast_list
 		move	DVS+dev_flags,d0
 		and	#IFF_PROMISC,d0
 		beq.b	.c1
-		putBUS	#E8390_RXCONFIG+$18,EN0_RXCR
+		putBUSi	E8390_RXCONFIG+$18,EN0_RXCR
 		bra.b	.c3
 
 .c1		move	DVS+dev_flags,d0
@@ -1058,10 +1061,10 @@ set_multicast_list
 		beq.b	.c2
 * The multicast-accept list is initialized to accept-all, and we rely on 
 * higher-level filtering for now.
-		putBUS	#E8390_RXCONFIG+$08,EN0_RXCR
+		putBUSi	E8390_RXCONFIG+$08,EN0_RXCR
 		bra.b	.c3
 
-.c2		putBUS	#E8390_RXCONFIG,EN0_RXCR
+.c2		putBUSi	E8390_RXCONFIG,EN0_RXCR
 
 .c3		rts
 
@@ -1092,16 +1095,16 @@ ethdev_init	bsr	ether_setup
 NS8390_init	move	d0,-(sp)		; save argument "startp"
 
 * Follow National Semi's recommendations for initing the DP83902
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD
 * we always access byte-wise: $48, never word-wise: $49
-		putBUS	#$48,EN0_DCFG
+		putBUSi	$48,EN0_DCFG
 * Clear the remote byte count registers
 		moveq	#0,d1
 		putBUS	d1,EN0_RCNTLO
 		putBUS	d1,EN0_RCNTHI
 * Set to monitor and loopback mode -- this is vital!
-		putBUS	#E8390_RXOFF,EN0_RXCR
-		putBUS	#E8390_TXOFF,EN0_TXCR
+		putBUSi	E8390_RXOFF,EN0_RXCR
+		putBUSi	E8390_TXOFF,EN0_TXCR
 * Set the transmit page and receive ring
 		move.b	DVS+lcl_tx_start_page,d0
 		putBUS	d0,EN0_TPSR
@@ -1111,12 +1114,12 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 		move.b	DVS+lcl_stop_page,d0
 		putBUS	d0,EN0_STOPPG
 * Clear the pending interrupts and mask
-		putBUS	#$ff,EN0_ISR		; acknoledge all
+		putBUSi	$ff,EN0_ISR		; acknoledge all
 		putBUS	d1,EN0_IMR		; and disable all interrupts
     
 * Copy the station address into the DS8390 registers, and set the 
 * multicast hash bitmap to receive all multicasts
-		putBUS	#E8390_NODMA+E8390_PAGE1+E8390_STOP,E8390_CMD
+		putBUSi	E8390_NODMA+E8390_PAGE1+E8390_STOP,E8390_CMD
 		lea	DVS+dev_dev_addr,a0
 		move.b	(a0)+,d0
 		putBUS	d0,EN1_PHYS+0
@@ -1147,7 +1150,7 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 		addq.b	#1,d0				; boundary one behind current
 		putBUS	d0,EN1_CURPAG
 		move.b	d0,DVS+lcl_current_page		; mirror
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; back to page 0
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; back to page 0
 
 		sf	DVS+dev_tbusy		; initialize
 		sf	DVS+dev_interrupt	; initialize
@@ -1155,13 +1158,13 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 
 		move	(sp)+,d0		; restore argument "startp"
 		beq.b	.c1
-		putBUS	#$ff,EN0_ISR		; clear all interrupts
+		putBUSi	$ff,EN0_ISR		; clear all interrupts
 * for this application (polling) we leave all intr masked.
-*		putBUS	#ENISR_ALL,EN0_IMR	; and enable all
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD
-		putBUS	#E8390_TXCONFIG,EN0_TXCR	; xmit on
+*		putBUSi	ENISR_ALL,EN0_IMR	; and enable all
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD
+		putBUSi	E8390_TXCONFIG,EN0_TXCR	; xmit on
 * 3c503 TechMan says rxconfig only after the NIC is started
-		putBUS	#E8390_RXCONFIG,EN0_RXCR	; rx on 
+		putBUSi	E8390_RXCONFIG,EN0_RXCR	; rx on 
 * Get the multicast status right if this was a reset
 		bsr	set_multicast_list
 
@@ -1255,22 +1258,22 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 		moveq	#-1,d0			; Error
 		bra	.quit
 
-.c1		putBUS	#$ff,EN0_ISR		; ack all interrupts
+.c1		putBUSi	$ff,EN0_ISR		; ack all interrupts
 
 		moveq	#0,d0
-		putBUS	#E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; select page 0
-		putBUS	#$48,EN0_DCFG		; set byte-wide access
+		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; select page 0
+		putBUSi	$48,EN0_DCFG		; set byte-wide access
 		putBUS	d0,EN0_RCNTLO		; clear the count regs.
 		putBUS	d0,EN0_RCNTHI
 		putBUS	d0,EN0_IMR		; mask completion iqr
-		putBUS	#$ff,EN0_ISR
-		putBUS	#E8390_RXOFF,EN0_RXCR	; $20 set to monitor
-		putBUS	#E8390_TXOFF,EN0_TXCR	; $02 and loopback mode
-.again		putBUS	#NBSA_prom&$ff,EN0_RCNTLO
-		putBUS	#NBSA_prom>>8,EN0_RCNTHI
+		putBUSi	$ff,EN0_ISR
+		putBUSi	E8390_RXOFF,EN0_RXCR	; $20 set to monitor
+		putBUSi	E8390_TXOFF,EN0_TXCR	; $02 and loopback mode
+.again		putBUSi	NBSA_prom&$ff,EN0_RCNTLO
+		putBUSi	NBSA_prom>>8,EN0_RCNTHI
 		putBUS	d0,EN0_RSARLO		; DMA starting at $0000
 		putBUS	d0,EN0_RSARHI
-		putBUS	#E8390_RREAD+E8390_START,E8390_CMD	; go
+		putBUSi	E8390_RREAD+E8390_START,E8390_CMD	; go
 
 		move	#NBSA_prom/2-1,d2
 		lea	pbSA_prom(sp),a0
@@ -1284,8 +1287,8 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 		move	#1,pbWordLen(sp)		
 .c2		dbra	d2,.t2
 
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; ack intr.
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR	; ack intr.
 
 	IFNE 0
 		PollKey
@@ -1398,7 +1401,7 @@ ne_reset_8390
 
 		PrS	.m1(pc)
 
-.c1		putBUS	#ENISR_RESET,EN0_ISR	; ack interrupt
+.c1		putBUSi	ENISR_RESET,EN0_ISR	; ack interrupt
 
 		rts
 

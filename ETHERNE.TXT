@@ -1,11 +1,11 @@
 ETHERNE.TXT                                                        ThR
-                                                            2002-04-12
+                                                            2002-06-08
 
 
 Introduction
 
 EtherNE is a package of hardware schematics and software drivers and
-source code to enable an Atari ST or compatible machine to connect to
+source code to enable an Atari ST or compatible machines to connect to
 ethernet.
 
 When designing this ethernet solution for the Atari ST I had the
@@ -15,13 +15,12 @@ following objectives:
 - use of readily available standard ethernet hardware
 - as simple as possible interface hardware
 - as fast and compact driver software as possible
-- support of STing and MagicNet IP stacks. The drivers work under
-  MINTNet but that has not been well tested yet.
+- support of STing, MagicNet and MINTNet IP stacks.
 
 To start from well stablished hardware I chose standard NE2000
 compatible cards with ISA bus interface (PCI cards are not supported)
 as a basis of the hardware solution. To interface the NE card to the
-ST EtherNE contains two types of interface hardware solutions:
+ST EtherNE contains three types of interface hardware solutions:
 
   ACSI-ISA interface (below called EtherNEA)
   - hardware design by me
@@ -36,11 +35,14 @@ ST EtherNE contains two types of interface hardware solutions:
   - This is suitable for all machines with Cartridge Port bus, e.g. 
     (Mega) ST, TT, (Mega) STE, Falcon.
 
+  Milan ISA slot (below called EtherNEM)
+  - this is just using a standard ISA slot built into the Milan.
+
 
 Software wise EtherNE supports various IP networking stacks:
 	STinG (version 1.26 tested)
 	MagicNet (version from Oct. 2001 tested)
-	MintNet; this has only been tested recently for EtherNEC
+	MintNet (sockdev.xdd version 1.5 PL1 has been tested)
 
 
 Choosing a hardware solution
@@ -117,23 +119,23 @@ Choosing an IP networking software stack
 All combinations of interface hardware and IP stacks are
 covered. Drivers in this package include:
 
-ENEAF.STX
-	STing version for fast EtherNEA fast ACSI interface
+EtherNEA ACSI interface, "fast" option:
+	ENEAF.STX	STing
+	ENEAF.MIF	MagicNet/MINTNet
 
-ENEAS.STX
-	STing version for slow EtherNEA ACSI interface
+EtherNEA ACSI interface, "slow" option:
+	ENEAS.STX	STing
+	ENEAS.MIF	MagiCNet/MINTNet
 
-ENEC.STX
-	STing version for EtherNEC cartridge port interface
+EtherNEC cartridge port interface
+	ENEC.STX	STing
+	ENEC.MIF	MagicNet/MINTNet
+	ENEC3.STX	STing (>=68020 only, e.g. Falcon, TT)
+	ENEC3.MIF	MagicNet/MINTNet (>=68020 only, e.g. Falcon, TT)
 
-ENEAF.MIF
-	MagicNet version for fast EtherNEA ACSI interface
-
-ENEAS.MIF
-	MagicNet version for slow EtherNEA ACSI interface
-
-ENEC.MIF
-	MagicNet version for EtherNEC cartridge port interface
+Milan ISA slot
+	ENEM.STX	STing
+	ENEM.MIF	MagicNet/MINTNet
 
 The MagiCNet versions also serve under MINTNet but require renaming
 the extension to XIF.
@@ -152,6 +154,10 @@ Please note that the drivers ENEA?.STX and ENEA?.MIF can only handle
 an EtherNEA interface hardware set to ACSI port 3 fixed. The ACSI port
 address is hardwired for optimum driver speed. If you really require a
 driver to support another ACSI port address please contact me.
+
+Please note that the drivers ENEM.STX and ENEM.MIF for the Milan can
+*only* handle an NE2000 card set to ISA IO-address $300. If you really
+require a driver to support another ISA IO-address please contact me.
 
 
 The driver software source code is available in directory SRC. Please
@@ -176,7 +182,7 @@ displayed by STNGPORT.CPX but you can not change it.
 Further you need to add a line to STiNG's ROUTE.TAB for example:
 192.168.1.0		255.255.255.0		EtherNet	0.0.0.0
 
-Pleas note you need to spell "EtherNet" exactly like this.
+Please note you need to spell "EtherNet" exactly like this.
 
 Performance of the driver depends on STiNG's port polling
 frequency. By default this is set to 50 milliseconds by the entry
@@ -211,8 +217,8 @@ Hints how to change the TCP receive window under MagiCNet (like I did
 for STing) are welcome.
 
 BTW: My current MagiCNet setup and tests with ping, CAB and AFTP and
-FTP-Server work fine with a standard harddisk partition with 8.3
-filenames only.
+Vassilis' FTP-Server work fine with a standard harddisk partition with
+8.3 filenames only.
 
 
 Set-up under MINTNet
@@ -223,7 +229,9 @@ to XIF. Then reboot. You shall see the message of the EtherNE driver
 also indicating the device created (usually en0) plus the MAC address
 of the NE2000 card (six bytes separated by colons).
 Check with ifconfig.ttp that the interface en0 is there and is up.
-
+Make sure you use a new sockdev.xdd. Version 1.5 PL 1 has been reported
+to work by Jan Krupka. Jan reported a serious problem when using an
+old sockdev.xdd.
 
 Features and Limitations
 
@@ -262,7 +270,7 @@ both had also issues with the latest version of GAPFTP. Preliminary
 measurements by Lyndon seem to indicate a slighty lower performance
 under MINTNet although software optimisations haven't been done.
 
-I obtained stable up- and down-load from PC to ST by running Vassili's
+I obtained stable up- and down-load from PC to ST by running Vassilis'
 FTP server on the ST and WS-FTP (client) on the PC both under STing and
 MagiCNet.
 
@@ -271,11 +279,11 @@ OS compatibility
 
 I tested this ethernet solution with both plain TOS 1.04 (STing) and 
 Magic 5.3 (STing and MagiCNet).
-Lyndon Amsdon did tests under MINT (MINTNet).
 On the other side of the Network I tested both with Windows 95 
-(WS-FTP95 LE) and Linux (SuSe 5.3).
+(WS-FTP95 LE and MSIE in ftp mode) and Linux (SuSe 5.3).
 Using CAB and aFTP, I tested HTTP and FTP access to the internet via 
 an Elsa Lancom 1000 ISDN router hooked to the EtherNet.
+Lyndon Amsdon and Jan Krupka did tests under MINT (MINTNet).
 
 
 Hardware compatibility
@@ -291,20 +299,20 @@ or corruption of data may occur! If in doubt do a harddisk backup
 
 Lyndon tested EtherNEC both with an STE and a Falcon.
 
+Jan Krupka tested EtherNEC both with a TT and a Falcon.
+
 
 Things for the future
 
 Fill the list of cards that work/do not work.
 
-More testing under MINTNet (volunteers welcome).
-
-Optimize code for 68030. Thanks to Mariusz Buras for first research 
-work on this (relevant for EtherNEC on the Falcon).
-
 Add code to set the interface MAC address to support cards that do 
 not have a PROM with MAC address.
 
 Add code to read the driver statistics specific for NE chip sets.
+
+Add code to set or change the ISA IO address for EtherNEM Milan
+drivers.
 
 Helping to improve net perfomance; could the difference of 400KB/s
 gross and 100KB/s net be reduced?
@@ -332,8 +340,35 @@ Disclaimer
 This package is provided to you as is. I do not guarantee any features
 nor do I take any responsibility for any damage or loss you may suffer
 when using this hardware and/or software.  I advise you should backup
-your harddisk before using EtherNEA and if your harddisk is connected
-to the ACSI port.
+your harddisk before using EtherNEA if your harddisk is connected to
+the ACSI port.
+
+
+Credits
+
+I wish to thank the following people:
+
+National Semiconductor for providing all data sheets and application
+notes on the Internet for the original NE chips.
+
+The Linux guys for their open driver source code. This code helped me
+a lot to write good drivers.
+
+Lyndon Amsdon for his work on EtherNEC hardware and his testing
+efforts.
+
+Elmar Hilgart for his work on EtherNEA hardware.
+
+Mariusz Buras for his ideas on 68030 optimization and support to write
+drivers for the Milan.
+
+Jan Krupka for testing with MINTNet, TT and Falcon.
+
+Peter Rottengatter and Ronald Andersson for the STinG IP stack.
+
+Vassilis Papathanassiou for the MagiCNet IP stack.
+
+Kay Roemer for the MINTNet IP stack.
 
 
 Contact Information
@@ -342,6 +377,7 @@ Suggestions, bug reports, flames to
 
 Dr. Thomas Redelberger
 EMail:     redetho@gmx.de
+Web:       http://home.arcor.de/thomas.redelberger
 
 Copyright 2001, 2002 Dr. Thomas Redelberger
 EtherNEC hardware copyright 2002 is also with Lyndon Amsdon.

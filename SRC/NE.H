@@ -1,7 +1,7 @@
 /************************************************************************/
 /*																		*/
 /*	Generic NEx000 driver for any BUS interface and STinG and MagicNet	*/
-/*	and MINTNet (the latter untestet)									*/
+/*	and MINTNet															*/
 /*	Copyright 2002 Dr. Thomas Redelberger								*/
 /*	Use it under the terms of the GNU General Public License			*/
 /*	(See file COPYING.TXT)												*/
@@ -16,7 +16,7 @@
 /*																		*/
 /************************************************************************/
 /*
-$Id: ne.h 1.1 2002/03/24 13:46:52 Thomas Exp Thomas $
+$Id: ne.h 1.3 2002/06/08 16:08:36 Thomas Exp Thomas $
  */
 
 

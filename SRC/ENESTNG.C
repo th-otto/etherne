@@ -17,7 +17,7 @@
 /* Tab size 4, developed with Turbo-C ST 2.0							*/
 /************************************************************************/
 /*
-$Id: enestng.c 1.1 2002/03/24 13:46:06 Thomas Exp Thomas $
+$Id: enestng.c 1.3 2002/06/08 16:07:50 Thomas Exp Thomas $
  */
 
 #define	NULL ((void*) 0L)
@@ -28,11 +28,9 @@ $Id: enestng.c 1.1 2002/03/24 13:46:06 Thomas Exp Thomas $
 
 #include "ne.h"
 #include "uti.h"
+#include "devswit.h"
 
 
-#define	M_YEAR		22	/* + 1980 */
-#define	M_MONTH		04
-#define	M_DAY		12
 #define	hz200		(*(unsigned long*) 0x4BAL)
 
 /* this is about a factor of six faster than memcpy(pd, ps, 6); */
@@ -127,8 +125,8 @@ PORT	my_port   = {
 	1500, 1500, 0L, NULL, 0L, NULL, 0, NULL, NULL
 };
 static DRIVER	my_driver = {
-	my_set_state, my_cntrl, my_send, my_receive, "EtherNet", "01.13",
-	(M_YEAR << 9) | (M_MONTH << 5) | M_DAY, "Thomas Redelberger",
+	my_set_state, my_cntrl, my_send, my_receive, "EtherNet", VersionStr(MajVersion,MinVersion),
+	((M_YEAR-1980) << 9) | (M_MONTH << 5) | M_DAY, "Dr. Thomas Redelberger",
 	NULL, NULL
 };
 

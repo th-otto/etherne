@@ -1,9 +1,9 @@
 README.TXT                                                         ThR
-                                                            2002-04-12
+                                                            2002-06-08
 
-You want to link your Atari (Mega) ST/TT/STE/Falcon to an ethernet
-network and are looking for hardware and software? Here is another
-solution!
+You want to link your Atari (Mega) ST/TT/STE/Falcon/Milan to an
+ethernet network and are looking for hardware and software? Here is
+another solution!
 
 ETHERNE
 	ETHERnet with NE2000 hardware
@@ -12,6 +12,8 @@ Prerequisites:
 
 - An Atari ST/TT/Falcon compatible machine with either Cartridge Port
   (ROM port) or ACSI-port
+  or
+  A Milan machine with ISA slots
 
 - STing or MagiCNet or MINTNet networking software
 
@@ -46,4 +48,7 @@ package.
 Copyright 2001, 2002 Dr. Thomas Redelberger.
 EtherNEC hardware schematics and layouts are also copyright 2002
 Lyndon Amsdon
+
+redetho@gmx.de
+http://home.arcor.de/thomas.redelberger
 

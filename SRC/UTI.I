@@ -8,7 +8,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: uti.i 1.1 2002/03/24 13:53:06 Thomas Exp Thomas $
+* $Id: uti.i 1.2 2002/06/08 16:26:52 Thomas Exp Thomas $
 *
 
 *
@@ -42,29 +42,53 @@ deAlloc		MACRO			; pop a number of bytes from stack
 
 
 mtst		MACRO			; bit test using a bit mask (masks taken from C code)
-		IFNE	\1&$01
+		IFNE	\1&$0001
 		btst	#0,\2
 		ENDC
-		IFNE	\1&$02
+		IFNE	\1&$0002
 		btst	#1,\2
 		ENDC
-		IFNE	\1&$04
+		IFNE	\1&$0004
 		btst	#2,\2
 		ENDC
-		IFNE	\1&$08
+		IFNE	\1&$0008
 		btst	#3,\2
 		ENDC
-		IFNE	\1&$10
+		IFNE	\1&$0010
 		btst	#4,\2
 		ENDC
-		IFNE	\1&$20
+		IFNE	\1&$0020
 		btst	#5,\2
 		ENDC
-		IFNE	\1&$40
+		IFNE	\1&$0040
 		btst	#6,\2
 		ENDC
-		IFNE	\1&$80
+		IFNE	\1&$0080
 		btst	#7,\2
+		ENDC
+		IFNE	\1&$0100
+		btst	#8,\2
+		ENDC
+		IFNE	\1&$0200
+		btst	#9,\2
+		ENDC
+		IFNE	\1&$0400
+		btst	#10,\2
+		ENDC
+		IFNE	\1&$0800
+		btst	#11,\2
+		ENDC
+		IFNE	\1&$1000
+		btst	#12,\2
+		ENDC
+		IFNE	\1&$2000
+		btst	#13,\2
+		ENDC
+		IFNE	\1&$4000
+		btst	#14,\2
+		ENDC
+		IFNE	\1&$8000
+		btst	#15,\2
 		ENDC
 		ENDM
 

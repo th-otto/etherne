@@ -5,7 +5,7 @@
 # Use it under the terms of the GNU General Public License
 # (See file COPYING.TXT)
 #
-#$Id$
+#$Id: makefile 1.3 2002/06/08 16:38:20 Thomas Exp Thomas $
 #
 
 #### Turbo C 2.0
@@ -68,7 +68,7 @@ ht4enec.tos:	ht4enec.s uti.i busenec.i uti.s
 
 enemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i uti.i
 
-enestng.o:	$(INC_STNG)\transprt.h $(INC_STNG)\port.h ne.h uti.h
+enestng.o:	$(INC_STNG)\transprt.h $(INC_STNG)\port.h ne.h uti.h devswit.h
 
 nestng.o nemnet.o ne.o ht3ene.o:	devswit.i uti.i bus.i 8390.i
 
@@ -89,7 +89,7 @@ package:
 	cd ..; $(ZIP) -ar etherne.zip "*.* ~*.o ~*.ppt"
 
 
-all:	eneaf eneas enec
+all:	eneaf eneas enec enec3 enem
 
 
 #################################################################
@@ -124,6 +124,21 @@ enec:
 	$(MV)	ht2ene.tos ..\ht2enec.tos
 	$(MV)	ht3ene.tos ..\ht3enec.tos
 	$(MV)	ht4enec.tos ..\ht4enec.tos
+
+
+enec3:
+	$(CP)	busenec3.i bus.i
+	$(MAKE)	drivers
+	$(MV)	etherne.mif ..\enec3.mif
+	$(MV)	etherne.stx ..\enec3.stx
+
+
+enem:
+	$(CP)	busenem.i bus.i
+	$(MAKE)	drivers ht2ene.tos
+	$(MV)	etherne.mif ..\enem.mif
+	$(MV)	etherne.stx ..\enem.stx
+	$(MV)	ht2ene.tos ..\ht2enem.tos
 
 
 # development driver

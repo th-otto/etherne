@@ -3,7 +3,7 @@
 * Version for my ACSI-NE2000 interface hardware in fast mode for newer		*
 * NE2000 clones									*
 *										*
-*	Copyright 2001 Dr. Thomas Redelberger					*
+*	Copyright 2002 Dr. Thomas Redelberger					*
 *	Use it under the terms of the GNU General Public License		*
 *	(See file COPYING.TXT)							*
 *										*
@@ -19,7 +19,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: buseneaf.i 1.1 2002/03/24 13:53:06 Thomas Exp Thomas $
+* $Id: buseneaf.i 1.3 2002/06/08 16:26:52 Thomas Exp Thomas $
 *
 
 *
@@ -126,6 +126,11 @@ putMore		MACRO
 		ENDM
 
 
+putBUSi		MACRO
+		putBUS	#\1,\2
+		ENDM
+
+
 getBUS		MACRO
 		move	Ra1l,(RcBUS)		; A1 gets low
 		move	#TheACh+\1,(RdBUS)	; set register selection via ACSI channel
@@ -161,9 +166,9 @@ deselBUS	MACRO
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 	
 RAM2NE		MACRO
-		ext.l	\2			; clear upper word + test for 0
+		ext.l	\2			; clear upper word
 		subq.w	#2,\2			; first two puts are outside loop
-		ble.b	.doNothing\@
+		ble.b	.doNothing\@		; nothing to do?
 		move.b	(\1)+,d0
 		putBUS	d0,NE_DATAPORT		; this sets the NE IO address
 		move.b	(\1)+,d0
@@ -207,7 +212,6 @@ RAM2NE		MACRO
 ******** NE2RAM *****************************************************************
 * This is a macro for speed
 * get # of bytes in register arg2 to RAM location pointed to by arg1.
-* *** A first getBUS MUST already have been done! ***
 *
 * in:	arg1	address register destination address
 *	arg2	data register (w) # of bytes to get; must not be d0!
@@ -216,8 +220,15 @@ RAM2NE		MACRO
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
 NE2RAM		MACRO
-* get the Packet; optimized for speed, we do 8 bytes at once.
 		ext.l	\2			; clear upper word
+		subq.w	#2,\2			; first two gets are outside loop
+		ble.b	.doNothing\@		; nothing to do?
+		getBUS	NE_DATAPORT,d0		; this sets the NE IO address
+		move.b	d0,(\1)+
+		getMore	NE_DATAPORT,d0
+		move.b	d0,(\1)+
+
+* get the Packet; optimized for speed, we do 8 bytes at once.
 		ror.l	#3,\2			; store remainder in upper word
 		bra.b	.Nb1\@
 
@@ -247,6 +258,7 @@ NE2RAM		MACRO
 		move.b	d0,(\1)+
 .Nb2\@		dbra	\2,.Nt2\@
 
+.doNothing\@
 		ENDM
 
 

@@ -22,7 +22,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: nestng.s 1.1 2002/03/24 13:48:44 Thomas Exp Thomas $
+* $Id: nestng.s 1.2 2002/06/08 16:12:22 Thomas Exp Thomas $
 *
 * descriptions:
 *
@@ -229,7 +229,9 @@ rtrvStngDgram	move	d3,-(a7)		; save used reg.
 
 .c1		move.w	ipLength(a2),d0
 		sub.w	d3,d0			; length-hd_len
-		move.w	d0,sgPkt_length(a2)
+		move.w	d0,sgPkt_length(a2)	; this may be add!
+		addq.w	#1,d0			; round up to even
+		and.w	#$fffe,d0
 		ext.l	d0
 		move.l	d0,-(a7)		; arg: length in bytes
 		movea.l	tpKRmalloc(a3),a0	; allocate mem for data
@@ -240,11 +242,14 @@ rtrvStngDgram	move	d3,-(a7)		; save used reg.
 
 		movea.l	d0,a0			; ^pkt_data
 		move.w	sgPkt_length(a2),d1	; pkt_length in bytes
+* if Pkt_length is odd we have allocated one more byte and we extract one more byte
+		addq.w	#1,d1			; round up to even
+		and.w	#$fffe,d1
 
 		NE2RAM	a0,d1			; get IP data
 
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
 
 		lea	my_port,a3
 		move.l	a3,sgRecvd(a2)		; recvd = &my_port
@@ -376,10 +381,10 @@ rtrvPckt
 		lsr.w	#8,d0
 		putBUS	d0,EN0_RCNTHI
 * hence we skip the 8390 header and the 2 MAC addreses
-		putBUS	#N8390Hdr+EthType,EN0_RSARLO	; skip 8390 header (4) + enet dst & src (12)
+		putBUSi	N8390Hdr+EthType,EN0_RSARLO	; skip 8390 header (4) + enet dst & src (12)
 		putBUS	RrxReadPg,EN0_RSARHI
 * thus we start remote DMA read command starting at the 2 ethernet type bytes
-		putBUS	#E8390_RREAD+E8390_START,E8390_CMD
+		putBUSi	E8390_RREAD+E8390_START,E8390_CMD
 
 	IFD	BUGGY_HW
 * note that the data is shifted by one byte in case of a junk header, we need to do one more read
@@ -416,9 +421,9 @@ rtrvPckt
 		PrB	d1
 		PrA	<13,10>
 	ENDC
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
 		getBUS	NE_DATAPORT,d1			; only this makes for a proper abort !!!
-		putBUS	#ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
+		putBUSi	ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
 		bra	.exit
 
 
@@ -429,8 +434,8 @@ rtrvPckt
 		bhi	.err1
 		lea	ArpPktBuff,a0			; destination
 		NE2RAM	a0,d1				; both regs get destroyed!
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
 		lea	ArpPktBuff,a0			; arg1:
 		move	RrxPktLen,d0			; arg2:
 		jsr	process_arp

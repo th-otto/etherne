@@ -11,12 +11,21 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: devswitp.i 1.1 2002/03/24 13:53:06 Thomas Exp Thomas $
+* $Id: devswitp.i 1.3 2002/06/08 16:26:52 Thomas Exp Thomas $
 
 
 *
 * development switches
 *
+
+MajVersion	EQU	1
+MinVersion	EQU	14
+
+VersionStr	MACRO
+		DC.B	'v\<MajVersion>.\<MinVersion> prd'
+		ENDM
+
+
 RXDEBPRT	EQU	0		; Receive  debug printout level
 					; 0=nothing except fatal stuff
 					; 1=only hopeless

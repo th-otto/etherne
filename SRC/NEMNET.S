@@ -17,7 +17,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: nemnet.s 1.1 2002/03/24 13:48:44 Thomas Exp Thomas $
+* $Id: nemnet.s 1.3 2002/06/08 16:12:22 Thomas Exp Thomas $
 *
 * descriptions:
 *
@@ -66,21 +66,7 @@
 
 ******** declarations for ethernet **********************************************
 N8390Hdr	EQU	4		; the 8390 chip stores a 4 byte header preceeding the packet
-NCRC		EQU	4		; 4 trailing CRC of a ethernet packet
-
-		RSRESET
-EthDst		RS.B	6		; Ethernet destination address (unused)
-EthSrc		RS.B	6		; Ethernet source address (unused)
-EthType		RS.W	1		; Ethernet packet type
-EthCTypeIP		EQU	$0800		; packet type IP
-EthCTypeARP		EQU	$0806		; packet type ARP
-EthCtypeRARP		EQU	$8035		; packet type reverse ARP (unused)
-EthCTypeIPARPHi		EQU	$08		; Hi byte for both IP and ARP
-EthCTypeIPLo		EQU	$00		; Lo byte IP
-EthCTypeARPLo		EQU	$06		; Lo byte ARP
-EthN		EQU	__RS
-***NArpPkt		EQU	64-EthN		; length of Arp packet without ethernet header
-					; but with padding and ethernet CRC
+NCRC		EQU	4		; 4 trailing CRC bytes of a ethernet packet
 
 
 
@@ -148,10 +134,7 @@ rtrvPckt
 	ENDC
 		move	RrxPktLen,RrpPktLen	; copy because d2 gets destroyed
 
-		cmp	#32+NCRC,RrpPktLen	; check packet must not be smaller
-		bcs	.err
-
-		lea	if_ENE,RrpNif
+		lea	if_ENE,RrpNif		; access to interface structure
 
 * do not know why these extra 50 front and 50 back are needed
 		moveq	#100,d0			; more length
@@ -172,9 +155,9 @@ rtrvPckt
 		lsr.w	#8,d0
 		putBUS	d0,EN0_RCNTHI
 * we need to skip the 8390 header
-		putBUS	#N8390Hdr,EN0_RSARLO	; skip 8390 header (4)
+		putBUSi	N8390Hdr,EN0_RSARLO	; skip 8390 header (4)
 		putBUS	RrxReadPg,EN0_RSARHI	; we start at this page
-		putBUS	#E8390_RREAD+E8390_START,E8390_CMD	; go
+		putBUSi	E8390_RREAD+E8390_START,E8390_CMD	; go
 
 	IFD	BUGGY_HW
 * note that the data is shifted by one byte in case of a junk header, we need to do one more read
@@ -184,18 +167,11 @@ rtrvPckt
 
 .c1
 	ENDC
-		move	RrpPktLen,d1
-		subq	#2,d1			; two bytes less we will eat first
-
 		move.l	bf_dstart(RrpBuf),a0	; pointer to data
-		getBUS	NE_DATAPORT,d0		; get first byte
-		move.b	d0,(a0)+
-		getMore	NE_DATAPORT,d0		; get second byte
-		move.b	d0,(a0)+
 
-		NE2RAM	a0,d1			; both regs get destroyed!
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
+		NE2RAM	a0,RrpPktLen		; both regs get destroyed!
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
+		putBUSi	ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
 
 * pass packet to upper layers
 
@@ -205,7 +181,7 @@ rtrvPckt
 
 		Bpf_input	(RrpNif),(RrpBuf)
 
-* remove ethernet header (returns packet type)
+* remove ethernet header (returns packet type in d0)
 .c2		Eth_remove_hdr	(RrpBuf)
 
 		moveq	#0,d1
@@ -228,9 +204,9 @@ rtrvPckt
 
 .err		moveq.l	#-1,d0			; signal error
 		addq.l	#1,if_in_errors(RrpNif)	; statistics
-		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
+		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
 		getBUS	NE_DATAPORT,d1		; only this makes for a proper abort !!!
-		putBUS	#ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
+		putBUSi	ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
 		bra.b	.exit
 
 

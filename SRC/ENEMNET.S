@@ -1,7 +1,7 @@
 *************************************************************************
 *									*
 * MagiCNet driver for EtherNE NE2000 adapter				*
-* May work with MintNet but was not tested				*
+* Works also with MintNet.						*
 * Generic for ACSI and Cartridge Port interface hardware		*
 * Copyright 2001-2002 Dr. Thomas Redelberger				*
 * Use it under the terms of the GNU General Public License		*
@@ -20,12 +20,13 @@
 *									*
 * Tab size 8, developed with DEVPAC ST 2.0				*
 *************************************************************************
-* $Id: enemnet.s 1.1 2002/03/24 13:48:44 Thomas Exp Thomas $
+* $Id: enemnet.s 1.3 2002/06/08 16:12:22 Thomas Exp Thomas $
 
 *
 * development switches
 *
 
+		INCLUDE	DEVSWIT.I
 
 *
 * configuration switches
@@ -138,7 +139,6 @@ init		movem.l	Rin,-(sp)
 
 		move.l	d0,a0
 		PrS	(a0)
-		PrS	.crlf(pc)
 
 .c2		PrS	.mess1(pc)			; print message
 		lea	if_hwlocalAddr(RinNif),a0	; MAC
@@ -156,10 +156,13 @@ init		movem.l	Rin,-(sp)
 .quit		movem.l	(sp)+,Rin
 		rts
 
-.mess1		DC.B	'EtherNE driver v1.13 (en'
+.mess1		DC.B	' EtherNE driver '
+		VersionStr
+		DC.B	' (C) 2002 Dr. Thomas Redelberger',13,10
+		DC.B	'Device (en'
 .mess2		DC.B	'0) MAC: ',0
 
-.bscrlf		DC.B	8
+.bscrlf		DC.B	8,32
 .crlf		DC.B	13,10,0
 .colon		DC.B	':',0
 		EVEN
@@ -197,7 +200,7 @@ NEInstInt	move	sr,-(sp)		; save int. level
 * preserve d0-d2 and a0-a1
 *********************************************************************************
 
-RmH		REG	d0-d4/a0-a4
+RmH		REG	d0-d2/a0-a2
 
 .myHZ200	movem.l	RmH,-(sp)
 
@@ -322,9 +325,7 @@ ENE_re_xmit	movem.l	Rrx,-(sp)
 
 
 .sendlater
-* problem bf_info is only 26 ! one word padding after 'short links' ???
-		move	bf_info(RrxBuf),d0		; arg3: info
-***		move	28(RrxBuf),d0			; arg3: info
+		move.l	bf_info(RrxBuf),d0		; arg3: info
 		move.l	RrxBuf,a1			; arg2: buf
 		lea	if_snd(RrxNif),a0		; arg1: if_snd
 		bsr	if_putback

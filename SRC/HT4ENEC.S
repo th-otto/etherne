@@ -10,7 +10,7 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id$
+* $Id: ht4enec.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
 *
 
 *

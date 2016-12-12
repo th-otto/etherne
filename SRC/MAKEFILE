@@ -9,21 +9,24 @@
 #
 
 #### Turbo C 2.0
-CC=c:\dev\c\tcc.ttp
-CFLAGS=-Ic:\dev\c\include -Iinc_stng -Iinc_mnet
+CC=bin\tcc.ttp
+CFLAGS=-Iinclude -Iinc_stng -Iinc_mnet
 
-LINK=c:\dev\c\tlink.ttp
+LINK=bin\tlink.ttp
 LFLAGS=-v
-LIBDIR= c:\dev\c\lib
+LIBDIR=lib
 
 #### DEVPAC 2.0
-AS=c:\dev\a\devpro\genst2.ttp
+#AS=bin\genst2.ttp
+#### DEVPAC 3.10
+AS=bin\gen.ttp
 AFLAGS=-L2
 
 #### Mupfel
 RM=rm -f
 CP=cp
-MV=mv
+#MV=mv
+MV=cp
 MAKE=make
 ZIP=stzip
 ECHO=echo
@@ -38,6 +41,7 @@ OBJS = $(OBJS_STNG) $(OBJS_MNET) $(OBJS_HT3)
 INC_STNG= inc_stng
 INC_MNET= inc_mnet
 
+default:	all
 
 drivers:	etherne.stx etherne.mif
 

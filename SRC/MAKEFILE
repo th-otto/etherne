@@ -13,13 +13,11 @@ CC=bin\tcc.ttp
 CFLAGS=-Iinclude -Iinc_stng -Iinc_mnet
 
 LINK=bin\tlink.ttp
-LFLAGS=-v
+LFLAGS=
 LIBDIR=lib
 
 #### DEVPAC 2.0
-#AS=bin\genst2.ttp
-#### DEVPAC 3.10
-AS=bin\gen.ttp
+AS=bin\genst2.ttp
 AFLAGS=-L2
 
 #### Mupfel
@@ -86,7 +84,7 @@ uti.o:		uti.i uti.h
 #################################################################
 
 clean:
-	$(RM) $(OBJS)
+	$(RM) *.tos *.stx *.mif *.o bus.i
 
 
 package:

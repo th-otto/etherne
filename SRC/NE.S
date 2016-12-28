@@ -302,7 +302,7 @@ ei_start_xmit	move.w	d0,d2			; save arg
 		sub.l	DVS+dev_trans_start,d0	; time since start of last xmit
 		cmp.l	#TX_TIMEOUT,d0
 		bls	.TxBusy			; not yet over, leave it alone
-		
+
 		addq.w	#1,DVS+lcl_es_tx_errors	; possibly died
 	IFGE	TXDEBPRT-1
 		PrA	<"TX timed out",13,10>
@@ -360,7 +360,7 @@ ei_start_xmit	move.w	d0,d2			; save arg
 ******** ei_interrupt ***********************************************************
 * The typical workload of the driver:
 * Handle the ether interface interrupts. This is done by polling here.
-* Thus this function is *not* a proper interrupt handler (it does not save all 
+* Thus this function is *not* a proper interrupt handler (it does not save all
 * regs. and ends with rts rather than rte).
 *
 * in:
@@ -370,8 +370,8 @@ ei_start_xmit	move.w	d0,d2			; save arg
 *	nothing
 *
 * changed:
-*	d0-d2,a0-a1 do change and are not saved to match Turbo-C 2.0 calling 
-*	convention we save only those regs. that get changed in ei_interrupt 
+*	d0-d2,a0-a1 do change and are not saved to match Turbo-C 2.0 calling
+*	convention we save only those regs. that get changed in ei_interrupt
 *	to keep it fast. ei_receive saves the regs it uses
 *
 * uses
@@ -516,7 +516,7 @@ ei_interrupt	lockBUS				; aquire Bus, jumps to .doNothing
 * A transmitter error has happened. Most likely excess collisions (which
 * is a fairly normal condition). If the error is one where the Tx will
 * have been aborted, we do not try to send the packet sitting in the NE buffer
-* again because tx would not be finished before the next tx is attempted by 
+* again because tx would not be finished before the next tx is attempted by
 * ei_start_xmit
 *
 * in
@@ -676,7 +676,7 @@ ei_tx_intr	getBUS	EN0_TSR,RtiStts		; first get status for this one
 
 *
 * changed
-*	
+*
 *
 ********
 * The 8390 header problem:
@@ -758,6 +758,15 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		putBUS	RrxReadPg,EN0_RSARHI
 		putBUSi	E8390_RREAD+E8390_START,E8390_CMD ; start remote DMA Read
 
+	IFD	WORD_TRANSFER
+		getBUSW	NE_DATAPORT,d0
+		move.b	d0,RrxNextFrm			; status byte
+		lsr.w	#8,d0				; next page
+		move.b	d0,rxHdrSts(sp)
+		getMoreW NE_DATAPORT,d0
+		ror.w	#8,d0
+		move.w	d0,RrxPktLen			; Count
+	ELSE
 		getBUS	NE_DATAPORT,d0
 		move.b	d0,rxHdrSts(sp)			; first: status byte
 		getMore	NE_DATAPORT,RrxNextFrm		; next:  next page
@@ -765,6 +774,7 @@ ei_receive	movem.l	Rrx,-(sp)			; save registers
 		getMore	NE_DATAPORT,RrxPktLen		; next:  Count Hi
 		lsl.w	#8,RrxPktLen			; Count Hi in upper byte
 		move.b	d0,RrxPktLen			; merge in Count Lo byte
+	ENDC
 * RrxPktLen is the length of the packet data to *follow* the header (incl. CRC)
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
 		putBUSi	ENISR_RDC,EN0_ISR		; reset remote DMA ready bit
@@ -863,7 +873,7 @@ debPrint	MACRO
 		sub.b	RrxReadPg,RrxPktLen		; calculate Count Hi Byte
 		subq.b	#1,RrxPktLen			; rounding ???
 		bge.b	.c1
-	
+
 		add.b	lcl_stop_page(RitDVS),RrxPktLen		; adjust for wrap
 		sub.b	lcl_rx_start_page(RitDVS),RrxPktLen
 
@@ -904,7 +914,7 @@ debPrint	MACRO
 
 
 		IFGE	RXDEBPRT-2
-eirDumpState	
+eirDumpState
 		PrA	<" Cls: ">
 		PrW	eiCalls(pc)
 		PrA	<" Cnt: ">
@@ -943,7 +953,7 @@ eiCalls		DC.W	0
 *
 *********************************************************************************
 
-* local variables in memory; we must use them here instead of registers because 
+* local variables in memory; we must use them here instead of registers because
 * ei_receive (called below) would destroy those registers
 		RSRESET
 roWasTxing	RS.W	1
@@ -957,7 +967,7 @@ ei_rx_overrun	Alloc	roNLcl				; locals vars
 		getBUS	E8390_CMD,d0
 		and	#E8390_TRANS,d0
 		move	d0,roWasTxing(sp)		; find out if transmit is in progress
-		
+
 		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD	; stop
 
 	IFGE	RXDEBPRT-1
@@ -997,11 +1007,11 @@ ei_rx_overrun	Alloc	roNLcl				; locals vars
 		putBUSi	ENISR_OVER,EN0_ISR
 
 * Leave loopback mode, and resend any packet that got stopped.
-		putBUSi	E8390_TXCONFIG,EN0_TXCR 
+		putBUSi	E8390_TXCONFIG,EN0_TXCR
 
 		tst	roMustResend(sp)
 		beq.b	.c2
- 
+
 		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START+E8390_TRANS,E8390_CMD
 
 .c2		deAlloc	roNLcl			; pop local vars
@@ -1040,7 +1050,7 @@ get_stats	movem.l	Rgs,-(sp)
 		getBUS	EN0_COUNTER2,d0
 		and	d1,d0
 		add	d0,lcl_es_rx_missed_errors(RgsDVS)
-	
+
 .c1		deselBUS			; deselect Bus interface
 		unlockBUS			; relinquish Bus
 .doNothing	move.l	#DVS+lcl_stats,d0	; OK
@@ -1063,7 +1073,7 @@ set_multicast_list
 		and	#IFF_ALLMULTI,d0
 		or	DVS+dev_mc_list,d0
 		beq.b	.c2
-* The multicast-accept list is initialized to accept-all, and we rely on 
+* The multicast-accept list is initialized to accept-all, and we rely on
 * higher-level filtering for now.
 		putBUSi	E8390_RXCONFIG+$08,EN0_RXCR
 		bra.b	.c3
@@ -1100,8 +1110,11 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 
 * Follow National Semi's recommendations for initing the DP83902
 		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_STOP,E8390_CMD
-* we always access byte-wise: $48, never word-wise: $49
+	IFD	WORD_TRANSFER
+		putBUSi	$49,EN0_DCFG
+	ELSE
 		putBUSi	$48,EN0_DCFG
+	ENDC
 * Clear the remote byte count registers
 		moveq	#0,d1
 		putBUS	d1,EN0_RCNTLO
@@ -1120,8 +1133,8 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 * Clear the pending interrupts and mask
 		putBUSi	$ff,EN0_ISR		; acknoledge all
 		putBUS	d1,EN0_IMR		; and disable all interrupts
-    
-* Copy the station address into the DS8390 registers, and set the 
+
+* Copy the station address into the DS8390 registers, and set the
 * multicast hash bitmap to receive all multicasts
 		putBUSi	E8390_NODMA+E8390_PAGE1+E8390_STOP,E8390_CMD
 		lea	DVS+dev_dev_addr,a0
@@ -1138,7 +1151,7 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 		move.b	(a0)+,d0
 		putBUS	d0,EN1_PHYS+5
 
-* Initialize the multicast list to accept-all. If we enable multicast the 
+* Initialize the multicast list to accept-all. If we enable multicast the
 * higher levels can do the filtering
 		moveq	#$ff,d0
 		putBUS	d0,EN1_MULT+0
@@ -1168,7 +1181,7 @@ NS8390_init	move	d0,-(sp)		; save argument "startp"
 		putBUSi	E8390_NODMA+E8390_PAGE0+E8390_START,E8390_CMD
 		putBUSi	E8390_TXCONFIG,EN0_TXCR	; xmit on
 * 3c503 TechMan says rxconfig only after the NIC is started
-		putBUSi	E8390_RXCONFIG,EN0_RXCR	; rx on 
+		putBUSi	E8390_RXCONFIG,EN0_RXCR	; rx on
 * Get the multicast status right if this was a reset
 		bsr	set_multicast_list
 
@@ -1288,7 +1301,7 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 		move.b	d1,(a0)+
 		cmp.b	d0,d1			; check for doubled up values
 		beq.b	.c2
-		move	#1,pbWordLen(sp)		
+		move	#1,pbWordLen(sp)
 .c2		dbra	d2,.t2
 
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
@@ -1357,7 +1370,7 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 		bsr	ethdev_init
 
 * store devices ethernet MAC address in struct device
-		lea	pbSA_prom(sp),a0		
+		lea	pbSA_prom(sp),a0
 		lea	dev_dev_addr(RprDVS),a1
 		moveq	#ETHER_ADDR_LEN-1,d0
 
@@ -1368,7 +1381,7 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 		bsr	NS8390_init
 
 		moveq	#0,d0		; rc=OK
-		
+
 
 .quit		deselBUS			; deselect Bus interface
 		unlockBUSWait			; relinquish Bus
@@ -1389,7 +1402,7 @@ ei_probe1	movem.l	Rpr,-(sp)		; save used regs
 * 8390 reset command required, but that shouldn't be necessary
 *********************************************************************************
 
-ne_reset_8390	
+ne_reset_8390
 * DON'T change these to inb_p/outb_p or reset will fail on clones
 		getBUS	NE_RESET,d1
 		putBUS	d1,NE_RESET

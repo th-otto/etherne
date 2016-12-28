@@ -73,7 +73,7 @@
 		SECTION	TEXT
 
 *********************************************************************************
-* The following interfacing code, rtrvStngDgram, was taken from function 
+* The following interfacing code, rtrvStngDgram, was taken from function
 * retrieve_dgram of Peter's ethernea.c, converted to assembler and optimized.
 * It links STinG specifics with NEx000 hardware specifics.
 * Therefore it references the external IP packet representation as well as STinGs
@@ -87,7 +87,7 @@
 
 *
 * function pointer offsets in  tpl  and  stx  and  my_port. Because we
-* use only a few functions full blown structure declaration is not 
+* use only a few functions full blown structure declaration is not
 * warranted
 *
 tpKRmalloc	EQU	$0c
@@ -141,7 +141,7 @@ sgIp_DgramLen	EQU	__RS
 
 
 ******** rtrvStngDgrm ***********************************************************
-* This function is called only (statically) once from rtrvPckt it does 
+* This function is called only (statically) once from rtrvPckt it does
 * special parameter passing different from Turbo-C/Pure-C or cdecl:
 *
 * in
@@ -183,10 +183,17 @@ rtrvStngDgram	move	d3,-(a7)		; save used reg.
 		beq	.err1			; KRmalloc failed?
 
 		movea.l	a2,a0
+	IFD	WORD_TRANSFER
+		REPT	10			; ipHdrLen/2
+		getMoreW NE_DATAPORT,d0
+		move.w	d0,(a0)+		; get IP header
+		ENDR
+	ELSE
 		REPT	20			; ipHdrLen
 		getMore	NE_DATAPORT,d0
 		move.b	d0,(a0)+		; get IP header
 		ENDR
+	ENDC
 
 * check consistency of IP header
 		move	(a7),d0			; saved RrxPktLen
@@ -221,10 +228,17 @@ rtrvStngDgram	move	d3,-(a7)		; save used reg.
 		lsr.w	#2,d1			; length in longs
 		bra.b	.b1
 
+	IFD	WORD_TRANSFER
+.t1		REPT	2
+		getMoreW NE_DATAPORT,d0
+		move.w	d0,(a0)+		; get IP options
+		ENDR
+	ELSE
 .t1		REPT	4
 		getMore	NE_DATAPORT,d0
 		move.b	d0,(a0)+		; get IP options
 		ENDR
+	ENDC
 .b1		dbra	d1,.t1
 
 .c1		move.w	ipLength(a2),d0
@@ -329,7 +343,7 @@ NArpPkt		EQU	64-EthN		; length of Arp packet without ethernet header
 
 
 ******** rtrvPckt ***************************************************************
-* This function is called only (statically) once from ei_receive in NE.S; it does 
+* This function is called only (statically) once from ei_receive in NE.S; it does
 * special parameter passing different from Turbo-C/Pure-C or cdecl:
 *
 *
@@ -367,7 +381,7 @@ NArpPkt		EQU	64-EthN		; length of Arp packet without ethernet header
 RrxJnk8990	EQUR	d1
 	ENDC
 RrxReadPg	EQUR	d4
-	
+
 rtrvPckt
 	IFGE	RXDEBPRT-999
 		PrW	RrxPktLen
@@ -388,12 +402,19 @@ rtrvPckt
 
 	IFD	BUGGY_HW
 * note that the data is shifted by one byte in case of a junk header, we need to do one more read
-		tst.b	RrxJnk8990
-		beq.b	.c1
-		getBUS	NE_DATAPORT,d0			; dummy read
+	tst.b	RrxJnk8990
+	beq.b	.c1
+	getBUS	NE_DATAPORT,d0			; dummy read
 
 .c1
 	ENDC
+	IFD	WORD_TRANSFER
+		getBUSW	NE_DATAPORT,d0			; get type
+		cmp.w	#EthCTypeIP,d0			; IP packet?
+		beq	.IP
+		cmp.w	#EthCTypeARP,d0			; ARP packet?
+		beq	.ARP
+	ELSE
 		getBUS	NE_DATAPORT,d0			; get type hi byte
 		cmp.b	#EthCTypeIPARPHi,d0
 		bne	.err
@@ -402,12 +423,14 @@ rtrvPckt
 		beq	.IP
 		cmp.b	#EthCTypeARPLo,d0		; ARP packet?
 		beq	.ARP				; if not it is an error
+	ENDC
 
 
 .err		moveq.l	#-10,d0				; fall thru
 
 .err1
 	IFGE	RXDEBPRT-1
+	IFND	WORD_TRANSFER
 		PrA	<"rc ">
 		PrL	d0
 		PrA	<" ">
@@ -420,6 +443,7 @@ rtrvPckt
 		getBUS	NE_DATAPORT,d1
 		PrB	d1
 		PrA	<13,10>
+	ENDC
 	ENDC
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
 		getBUS	NE_DATAPORT,d1			; only this makes for a proper abort !!!
@@ -442,7 +466,7 @@ rtrvPckt
 		bra.b	.exit
 
 
-.IP		bsr	rtrvStngDgram			; implied arg1: RrxPktLen	
+.IP		bsr	rtrvStngDgram			; implied arg1: RrxPktLen
 		tst.l	d0
 		bne	.err1				; Nachkarten
 *		bra.b	.exit				; fall thru to exit

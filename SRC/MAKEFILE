@@ -17,7 +17,9 @@ LFLAGS=
 LIBDIR=lib
 
 #### DEVPAC 2.0
-AS=bin\genst2.ttp
+#AS=bin\genst2.ttp
+#### DEVPAC 3.10
+AS=bin\gen.ttp
 AFLAGS=-L2
 
 #### Mupfel
@@ -91,7 +93,7 @@ package:
 	cd ..; $(ZIP) -ar etherne.zip "*.* ~*.o ~*.ppt"
 
 
-all:	eneaf eneas enec enec3 enem eneh
+all:	eneaf eneas enec enec3 enem eneh enex
 
 
 #################################################################
@@ -150,6 +152,12 @@ eneh:
 	$(MV)	etherne.stx ..\eneh.stx
 	$(MV)	ht2ene.tos ..\ht2eneh.tos
 
+enex:
+	$(CP)	busenex.i bus.i
+	$(MAKE)	drivers ht2ene.tos
+	$(MV)	etherne.mif ..\enex.mif
+	$(MV)	etherne.stx ..\enex.stx
+	$(MV)	ht2ene.tos ..\ht2enex.tos
 
 # development driver
 

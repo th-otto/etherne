@@ -33,7 +33,7 @@ E8390_RXOFF		EQU	$20		; EN0_RXCR: Accept no packets
 E8390_TXCONFIG		EQU	$00		; EN0_TXCR: Normal transmit mode
 E8390_TXOFF		EQU	$02		; EN0_TXCR: Transmitter off
 
-*  Register accessed at EN_CMD, the 8390 base addr. 
+*  Register accessed at EN_CMD, the 8390 base addr.
 E8390_STOP	EQU	$01		; Stop and reset the chip
 E8390_START	EQU	$02		; Start the chip, clear reset
 E8390_TRANS	EQU	$04		; Transmit a frame
@@ -130,7 +130,7 @@ NE1SM_STOP_PG	EQU	$60		; Last page +1 of RX ring (NE1000 with 16K)
 	ENDC
 
 NESM_START_PG	EQU	$40		; First page of TX buffer
-	IFNE	0
+	IFD	WORD_TRANSFER
 NESM_STOP_PG	EQU	$80		; Last page +1 of RX ring
 	ELSEIF
 * NE2000 cards in 8bit mode seem to use only half of memory (use only 8 from 16 bits internally?)

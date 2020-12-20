@@ -5,9 +5,7 @@
 *										*
 * Version to use only CP address line and avoids /UDS	(slower, arrgh!)	*
 *										*
-* This version supports only machines with 68020 processor or higher!		*
-*										*
-*	Copyright 2002 Mariusz Buras, Dr. Thomas Redelberger			*
+*	Copyright 2002 Dr. Thomas Redelberger					*
 *	Use it under the terms of the GNU General Public License		*
 *	(See file COPYING.TXT)							*
 *										*
@@ -19,6 +17,6 @@
 * manifest constants
 *
 
-CPU020		EQU 1
+CPU020		EQU 0
 
 		.INCLUDE "busenec.i"

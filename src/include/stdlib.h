@@ -37,6 +37,7 @@ int     atoi( const char *str );
 long    atol( const char *str );
 
 char    *ecvt( double d, int ndig, int *dec, int *sign );
+char    *fcvt( double d, int ndig, int *dec, int *sign );
 char    *gcvt( double value, int dec, char * buf );
 
 char    *itoa( int value, char *string, int radix );

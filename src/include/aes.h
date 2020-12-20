@@ -15,17 +15,30 @@
 typedef struct
 {
     int    contrl[15];
-    int    global[80];
-    int    intin[128];
-    int    intout[45];
-    int    ptsout[128];
-    void   *addrin[128];
-    void   *addrout[6];
-    int    ptsin[128];
+    int    global[15];
+    int    intin[132];
+    int    intout[140];
+    void   *addrin[16];
+    void   *addrout[16];
 } GEMPARBLK;
 
 extern  GEMPARBLK _GemParBlk;
 extern  int       _app;
+
+typedef struct
+{
+    int    *contrl;
+    int    *global;
+    int    *intin;
+    int    *intout;
+    int    *addrin;
+    int    *addrout;
+} AESPB;
+
+
+int  vq_aes( void );
+void _crystal( AESPB *aespb );
+
 
 /****** Application definitions *****************************************/
 
@@ -36,7 +49,10 @@ int appl_find( const char *ap_fpname );
 int appl_tplay( void *ap_tpmem, int ap_tpnum, int ap_tpscale );
 int appl_trecord( void *ap_trmem, int ap_trcount );
 int appl_exit( void );
-
+int appl_search( int ap_smode, char *ap_sname, int *ap_stype,
+                 int *ap_sid );
+int appl_getinfo( int ap_gtype, int *ap_gout1, int *ap_gout2,
+                  int *ap_gout3, int *ap_gout4 );
 
 /****** Event definitions ***********************************************/
 
@@ -58,11 +74,21 @@ int appl_exit( void );
 #define WM_SIZED        27
 #define WM_MOVED        28
 #define WM_NEWTOP       29
+#define WM_UNTOPPED     30
+#define WM_ONTOP        31
 #define AC_OPEN         40
 #define AC_CLOSE        41
 #define CT_UPDATE       50
 #define CT_MOVE         51
 #define CT_NEWTOP       52
+#define AP_TERM         50
+#define AP_TFAIL        51
+#define AP_RESCHG       57
+#define SHUT_COMPLETED  60
+#define RESCHG_COMPLETED  61
+#define AP_DRAGDROP	    63
+#define CH_EXIT         80
+
 
 
 /* Keybord states */
@@ -75,13 +101,12 @@ int appl_exit( void );
 
 typedef struct
 {
-        int             m_out;
-        int             m_x;
-        int             m_y;
-        int             m_w;
-        int             m_h;
+        int     m_out;
+        int     m_x;
+        int     m_y;
+        int     m_w;
+        int	m_h;
 } MOBLK;
-
 
 int evnt_keybd( void );
 int evnt_button( int ev_bclicks, int ev_bmask, int ev_bstate,
@@ -105,6 +130,25 @@ int evnt_multi( int ev_mflags, int ev_mbclicks, int ev_mbmask,
 int evnt_dclick( int ev_dnew, int ev_dgetset );
 
 
+/* this is our special invention to increase evnt_multi performance */
+
+typedef struct /* Special type for EventMulti */
+{
+        /* input parameters */
+        int     ev_mflags, ev_mbclicks, ev_bmask, ev_mbstate, ev_mm1flags,
+                ev_mm1x, ev_mm1y, ev_mm1width, ev_mm1height, ev_mm2flags,
+                ev_mm2x, ev_mm2y, ev_mm2width, ev_mm2height, ev_mtlocount,
+                ev_mthicount;
+        /* output parameters */
+        int     ev_mwich, ev_mmox, ev_mmoy, ev_mmobutton, ev_mmokstate,
+                ev_mkreturn, ev_mbreturn;
+        /* message buffer */
+        int     ev_mmgpbuf[8];
+} EVENT;
+
+int EvntMulti( EVENT *evnt_struct );
+
+
 /****** Object definitions **********************************************/
 
 #define G_BOX           20
@@ -120,6 +164,7 @@ int evnt_dclick( int ev_dnew, int ev_dgetset );
 #define G_FBOXTEXT      30
 #define G_ICON          31
 #define G_TITLE         32
+#define G_CICON         33
 
 
 /* Object flags */
@@ -245,8 +290,25 @@ typedef struct
         int     ib_ytext;
         int     ib_wtext;
         int     ib_htext;
-        int     ib_resvd;
 } ICONBLK;
+
+
+typedef struct cicon_data
+{
+        int                num_planes;
+        int                *col_data;
+        int                *col_mask;
+        int                *sel_data;
+        int                *sel_mask;
+        struct cicon_data  *next_res;
+} CICON;
+
+
+typedef struct cicon_blk
+{
+        ICONBLK            monoblk;
+        CICON              *mainlist;
+} CICONBLK;
 
 
 typedef struct
@@ -291,6 +353,7 @@ typedef union obspecptr
         bfobspec obspec;
         TEDINFO  *tedinfo;
         ICONBLK  *iconblk;
+        CICONBLK *ciconblk;
         BITBLK   *bitblk;
 #ifndef __STDC__
         USERBLK *userblk;
@@ -327,6 +390,26 @@ typedef struct __parmblk
 } PARMBLK;
 
 
+typedef struct
+{
+        OBJECT  *mn_tree;
+        int     mn_menu;
+        int     mn_item;
+        int     mn_scroll;
+        int		mn_keystate;
+} MENU;
+
+
+typedef struct
+{
+        long   Display;
+        long   Drag;
+        long   Delay;
+        long   Speed;
+        int    Height;
+} MN_SET;
+
+
 /****** Menu definitions ************************************************/
 
 int menu_bar( OBJECT *me_btree, int me_bshow );
@@ -338,6 +421,13 @@ int menu_tnormal( OBJECT *me_ntree, int me_ntitle,
 int menu_text( OBJECT *me_ttree, int me_titem,
                const char *me_ttext );
 int menu_register( int me_rapid, const char *me_rpstring );
+int menu_popup( MENU *me_menu, int me_xpos, int me_ypos,
+                MENU *me_mdata );
+int menu_attach( int me_flag, OBJECT *me_tree, int me_item,
+                 MENU *me_mdata );
+int menu_istart( int me_flag, OBJECT *me_tree, int me_imenu,
+                 int me_item );
+int menu_settings( int me_flag, MN_SET *me_values );
 
 
 /* Object prototypes */
@@ -481,23 +571,48 @@ int fsel_exinput( char *fs_einpath, char *fs_einsel,
 #define RTARROW 0x0400
 #define HSLIDE  0x0800
 
-#define WF_KIND                  1
-#define WF_NAME                  2
-#define WF_INFO                  3
-#define WF_WORKXYWH              4
-#define WF_CURRXYWH              5
-#define WF_PREVXYWH              6
-#define WF_FULLXYWH              7
-#define WF_HSLIDE                8
-#define WF_VSLIDE                9
-#define WF_TOP                  10
-#define WF_FIRSTXYWH            11
-#define WF_NEXTXYWH             12
-#define WF_RESVD                13
-#define WF_NEWDESK              14
-#define WF_HSLSIZE              15
-#define WF_VSLSIZE              16
-#define WF_SCREEN               17
+#define WF_KIND          1
+#define WF_NAME          2
+#define WF_INFO          3
+#define WF_WORKXYWH      4
+#define WF_CURRXYWH      5
+#define WF_PREVXYWH      6
+#define WF_FULLXYWH      7
+#define WF_HSLIDE        8
+#define WF_VSLIDE        9
+#define WF_TOP          10
+#define WF_FIRSTXYWH	11
+#define WF_NEXTXYWH     12
+#define WF_RESVD        13
+#define WF_NEWDESK      14
+#define WF_HSLSIZE      15
+#define WF_VSLSIZE      16
+#define WF_SCREEN       17
+#define WF_COLOR        18
+#define WF_DCOLOR       19
+#define WF_OWNER        20
+#define WF_BEVENT       24
+#define WF_BOTTOM       25
+
+#define W_BOX            0
+#define W_TITLE          1
+#define W_CLOSER         2
+#define W_NAME           3
+#define W_FULLER         4
+#define W_INFO           5
+#define W_DATA           6
+#define W_WORK           7
+#define W_SIZER          8
+#define W_VBAR           9
+#define W_UPARROW       10
+#define W_DNARROW       11
+#define W_VSLIDE        12
+#define W_VELEV         13
+#define W_HBAR          14
+#define W_LFARROW       15
+#define W_RTARROW       16
+#define W_HSLIDE        17
+#define W_HELEV         18
 
 #define WA_UPPAGE 0
 #define WA_DNPAGE 1
@@ -582,7 +697,7 @@ int rsrc_free( void );
 int rsrc_gaddr( int re_gtype, int re_gindex, void *gaddr );
 int rsrc_saddr( int re_stype, int re_sindex, void *saddr );
 int rsrc_obfix( OBJECT *re_otree, int re_oobject );
-
+int rsrc_rcfix( RSHDR *rc_header );
 
 
 /****** Shell definitions ***********************************************/
@@ -598,4 +713,3 @@ int shel_envrn( char **sh_epvalue, char *sh_eparm );
 #endif
 
 /************************************************************************/
-

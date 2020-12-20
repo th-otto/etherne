@@ -75,14 +75,14 @@ EN0_IMR		EQU	$0f		; Interrupt mask reg WR
 EN0_COUNTER2	EQU	$0f		; Rcv missed frame error counter RD
 
 * Bits in EN0_ISR - Interrupt status register
-ENISR_RX	EQU	$01		; Receiver, no error
-ENISR_TX	EQU	$02		; Transmitter, no error
-ENISR_RX_ERR	EQU	$04		; Receiver, with error
-ENISR_TX_ERR	EQU	$08		; Transmitter, with error
-ENISR_OVER	EQU	$10		; Receiver overwrote the ring
-ENISR_COUNTERS	EQU	$20		; Counters need emptying
-ENISR_RDC	EQU	$40		; remote dma complete
-ENISR_RESET	EQU	$80		; Reset completed (this does never fire an int)
+ENISR_RX	EQU	0		; Receiver, no error
+ENISR_TX	EQU	1		; Transmitter, no error
+ENISR_RX_ERR	EQU	2		; Receiver, with error
+ENISR_TX_ERR	EQU	3		; Transmitter, with error
+ENISR_OVER	EQU	4		; Receiver overwrote the ring
+ENISR_COUNTERS	EQU	5		; Counters need emptying
+ENISR_RDC	EQU	6		; remote dma complete
+ENISR_RESET	EQU	7		; Reset completed (this does never fire an int)
 ENISR_ALL	EQU	$00		; no Interrupts ($3f would be normal)
 
 * Bits in EN0_DCFG - Data config register
@@ -104,14 +104,14 @@ ENRSR_DIS	EQU	$40		; receiver disable. set in monitor mode
 ENRSR_DEF	EQU	$80		; deferring
 
 * Transmitted packet status, EN0_TSR
-ENTSR_PTX	EQU	$01		; Packet transmitted without error
-ENTSR_ND	EQU	$02		; The transmit wasn't deferred.
-ENTSR_COL	EQU	$04		; The transmit collided at least once.
-ENTSR_ABT	EQU	$08		; The transmit collided 16 times, and was deferred.
-ENTSR_CRS	EQU	$10		; The carrier sense was lost.
-ENTSR_FU	EQU	$20		; A "FIFO underrun" occurred during transmit.
-ENTSR_CDH	EQU	$40		; The collision detect "heartbeat" signal was lost.
-ENTSR_OWC	EQU	$80		; There was an out-of-window collision.
+ENTSR_PTX	EQU	0		; Packet transmitted without error
+ENTSR_ND	EQU	1		; The transmit wasn't deferred.
+ENTSR_COL	EQU	2		; The transmit collided at least once.
+ENTSR_ABT	EQU	3		; The transmit collided 16 times, and was deferred.
+ENTSR_CRS	EQU	4		; The carrier sense was lost.
+ENTSR_FU	EQU	5		; A "FIFO underrun" occurred during transmit.
+ENTSR_CDH	EQU	6		; The collision detect "heartbeat" signal was lost.
+ENTSR_OWC	EQU	7		; There was an out-of-window collision.
 
 
 ******** Start of the NEx000 and clones board specific code *********************
@@ -125,14 +125,14 @@ NE_IO_EXTENT	EQU	$20
 NE1SM_START_PG	EQU	$20		; First page of TX buffer
 	IFNE	0
 NE1SM_STOP_PG	EQU	$40		; Last page +1 of RX ring (NE1000 with 8K)
-	ELSEIF
+	ELSE
 NE1SM_STOP_PG	EQU	$60		; Last page +1 of RX ring (NE1000 with 16K)
 	ENDC
 
 NESM_START_PG	EQU	$40		; First page of TX buffer
-	IFD	WORD_TRANSFER
+	IFNE	WORD_TRANSFER
 NESM_STOP_PG	EQU	$80		; Last page +1 of RX ring
-	ELSEIF
+	ELSE
 * NE2000 cards in 8bit mode seem to use only half of memory (use only 8 from 16 bits internally?)
 NESM_STOP_PG	EQU	$60		; Last page +1 of RX ring
 	ENDC

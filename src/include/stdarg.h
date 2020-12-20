@@ -11,11 +11,14 @@
 #define __STDARG
 
 
-typedef void    *va_list;
+typedef char    *va_list;
 
-#define va_start(ap, parmN) ((ap) = ...)
-#define va_arg(ap, type)    (*((type *)(ap))++)
-#define va_end(ap)
+#define va_start(ap, parmN) ((ap) = (char *)...)
+#define va_arg(ap, type)    \
+    ((sizeof(type) == 1) ? \
+    (*(type *)((ap += 2) - 1)) : \
+    (*((type *)(ap))++))
+#define va_end(ap)	(void)0
 
 
 #endif

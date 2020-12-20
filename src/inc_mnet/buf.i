@@ -24,13 +24,13 @@ BUF_ATOMIC	EQU	1
 * struct buf
 		OFFSET	0
 
-bf_buflen	DS.L	1			; ulong	buflen, including header
-bf_dstart	DS.L	1			; char	*dstart, start of data
-bf_dend		DS.L	1			; char	*dend, end of data
-bf_next		DS.L	1			; BUF	*next, next message
-bf_prev		DS.L	1			; BUF	*prev, previous message
-bf_link3	DS.L	1			; BUF	*link3, another next pointer
-bf_links	DS.W	1			; short	links, usage counter
-bf_info		DS.L	1			; long	info, aux info
+bf_buflen:	DS.L	1			; ulong	buflen, including header
+bf_dstart:	DS.L	1			; char	*dstart, start of data
+bf_dend:	DS.L	1			; char	*dend, end of data
+bf_next:	DS.L	1			; BUF	*next, next message
+bf_prev:	DS.L	1			; BUF	*prev, previous message
+bf_link3:	DS.L	1			; BUF	*link3, another next pointer
+bf_links:	DS.W	1			; short	links, usage counter
+bf_info:	DS.L	1			; long	info, aux info
 * ...more follow we do not need
 

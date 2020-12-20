@@ -31,45 +31,45 @@ ETH_MAX_DLEN		EQU	1500			; maximum data length
 * struct ifq
 		OFFSET	0
 
-q_maxqlen	DS.W	1				; short	maxqlen;
-q_qlen		DS.W	1				; short	qlen;
-q_curr		DS.W	1				; short	curr;
-q_qfirst	DS.L	IF_PRIORITIES			; BUF	*qfirst[IF_PRIORITIES];
-q_qlast		DS.L	IF_PRIORITIES			; BUF	*qlast[IF_PRIORITIES];
-Nqueue		EQU	*
+q_maxqlen:	DS.W	1				; short	maxqlen;
+q_qlen:		DS.W	1				; short	qlen;
+q_curr:		DS.W	1				; short	curr;
+q_qfirst:	DS.L	IF_PRIORITIES			; BUF	*qfirst[IF_PRIORITIES];
+q_qlast:	DS.L	IF_PRIORITIES			; BUF	*qlast[IF_PRIORITIES];
+Nqueue:
 
 
 * struct netif
 		OFFSET	0
 
-if_name		DS.B	IF_NAMSIZ			; char name[IF_NAMSIZ]
-if_unit		DS.W	1				; short unit
-if_flags	DS.W	1				; ushort flags
-if_metric	DS.L	1				; ulong metric
-if_mtu		DS.L	1				; ulong mtu
-if_timer	DS.L	1				; ulong timer
-if_hwtype	DS.W	1				; short hwtype
-if_hwlocalLen	DS.W	1				; hwlocal.len
-if_hwlocalAddr	DS.B	10				; hwlocal.addr
-if_hwbrctsLen	DS.W	1				; hwbrcst.len
-if_hwbrctsAddr	DS.B	10				; hwbrcst.addr
-if_addrlist	DS.L	1				; struct ifaddr* addrlist
-if_snd		DS.B	Nqueue				; struct ifq snd
-if_rcv		DS.B	Nqueue				; struct ifq rcv
-if_open		DS.L	1				; *open
-if_close	DS.L	1				; *close
-if_output	DS.L	1				; *output
-if_ioctl	DS.L	1				; *ioctl
-if_timeout	DS.L	1				; *timeout
-if_data		DS.L	1				; void* data
-if_in_packets	DS.L	1				; ulong in_packets
-if_in_errors	DS.L	1				; ulong in_errors
-if_out_packets	DS.L	1				; ulong out_packets
-if_out_errors	DS.L	1				; ulong out_errors
-if_collisions	DS.L	1				; ulong collisions
-if_next		DS.L	1				; struct netif* next
-if_maxpackets	DS.W	1				; short maxpackets
-if_bpf		DS.L	1				; struct bpf *bpf
+if_name:	DS.B	IF_NAMSIZ			; char name[IF_NAMSIZ]
+if_unit:	DS.W	1				; short unit
+if_flags:	DS.W	1				; ushort flags
+if_metric:	DS.L	1				; ulong metric
+if_mtu:		DS.L	1				; ulong mtu
+if_timer:	DS.L	1				; ulong timer
+if_hwtype:	DS.W	1				; short hwtype
+if_hwlocalLen:	DS.W	1				; hwlocal.len
+if_hwlocalAddr:	DS.B	10				; hwlocal.addr
+if_hwbrctsLen:	DS.W	1				; hwbrcst.len
+if_hwbrctsAddr:	DS.B	10				; hwbrcst.addr
+if_addrlist:	DS.L	1				; struct ifaddr* addrlist
+if_snd:		DS.B	Nqueue				; struct ifq snd
+if_rcv:		DS.B	Nqueue				; struct ifq rcv
+if_open:	DS.L	1				; *open
+if_close:	DS.L	1				; *close
+if_output:	DS.L	1				; *output
+if_ioctl:	DS.L	1				; *ioctl
+if_timeout:	DS.L	1				; *timeout
+if_data:	DS.L	1				; void* data
+if_in_packets:	DS.L	1				; ulong in_packets
+if_in_errors:	DS.L	1				; ulong in_errors
+if_out_packets:	DS.L	1				; ulong out_packets
+if_out_errors:	DS.L	1				; ulong out_errors
+if_collisions:	DS.L	1				; ulong collisions
+if_next:	DS.L	1				; struct netif* next
+if_maxpackets:	DS.W	1				; short maxpackets
+if_bpf:		DS.L	1				; struct bpf *bpf
 		DS.L	4				; long reserved[4]
-Nif		EQU	*
+Nif:
 

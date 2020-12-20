@@ -1,0 +1,13 @@
+..\bin\eneaf.stx
+.C[-Iinclude]
+.C[-P-]
+.L[-S=0]
+=
+startup.s
+enestng.c
+nestng.s
+ne.s
+uti.s
+
+lib\pctoslib.lib
+

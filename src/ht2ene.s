@@ -14,23 +14,17 @@
 * $Id: ht2ene.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
 *
 
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
-		
-		INCLUDE	UTI.I
+		.INCLUDE	"uti.i"
 
-		INCLUDE	BUS.I
+		.INCLUDE	"bus.i"
 
+lcl_irqlock	EQU	0
 
-		SECTION	TEXT
+		.TEXT
 
 * set stack and give back unused memory
-myStart		move.l	4(sp),a0		; get pointer to basepage
+myStart:
+		move.l	4(sp),a0		; get pointer to basepage
 		move.l	$18(a0),d0		; get start of BSS
 		add.l	$1c(a0),d0		; +BSS length=points beyond BSS
 		move.l	d0,sp			; here starts our stack
@@ -42,12 +36,12 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		trap	#1			; GemDos
 		lea	12(sp),sp		; pop args
 
-		PrS	.m1(pc)			; TaTa
+		PrS	m1(pc)			; TaTa
 
 *** test starts here
 	IFNE	0
 		bsr	ne_probe
-	ELSEIF
+	ELSE
 		pea	ne_probe(pc)		; must execute in super mode
 		move.w	#$26,-(sp)		; Supexec
 		trap	#14			; xbios
@@ -60,27 +54,29 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		illegal				; should never get here
 
 
-.m1		DC.B	$1b,"pTest EtherNE with NE card but without any STing, MagiCNEt, MINTNet",$1b,"q",13,10
+m1:
+		DC.B	$1b,"pTest EtherNE with NE card but without any STing, MagiCNEt, MINTNet",$1b,"q",13,10
 		DC.B	"Software (C)2002 Dr. Thomas Redelberger",13,10,0
 		EVEN
 
 *****************************************************************************
 
-		INCLUDE	8390.I
+		.INCLUDE	"8390.i"
 
 NBSA_prom	EQU	32
 
-ne_probe
+ne_probe:
 		lockBUSWait			; aquire Bus
 		ldBUSRegs			; prepare registers
 
-		PrS	.head1(pc)
+		PrS	head1(pc)
 
 		getBUS	NE_RESET,d1
 		putBUS	d1,NE_RESET
 
 		move	10000,d0		; wait 2ms
-.t1		dbra	d0,.t1
+t1_probe:
+		dbra	d0,t1_probe
 
 
 		getBUS	EN0_ISR,d1		; read isr
@@ -91,7 +87,7 @@ ne_probe
 		putBUS	#$ff,EN0_ISR		; ack all interrupts
 
 
-		PrS	.head2(pc)
+		PrS	head2(pc)
 
 		moveq	#0,d1
 * list +
@@ -104,7 +100,8 @@ ne_probe
 		putBUS	#$ff,EN0_ISR
 		putBUS	#E8390_RXOFF,EN0_RXCR	; $20 set to monitor
 		putBUS	#E8390_TXOFF,EN0_TXCR	; $02 and loopback mode
-.again		putBUS	#NBSA_prom&$ff,EN0_RCNTLO
+again_probe:
+		putBUS	#NBSA_prom&$ff,EN0_RCNTLO
 		putBUS	#NBSA_prom>>8,EN0_RCNTHI
 		putBUS	d1,EN0_RSARLO		; DMA starting at $0000
 		putBUS	d1,EN0_RSARHI
@@ -113,22 +110,24 @@ ne_probe
 		move	#NBSA_prom/2-1,d2
 		lea	pbSA_prom,a0
 
-.t2		getBUS	NE_DATAPORT,d0
+t2_probe:
+		getBUS	NE_DATAPORT,d0
 		move.b	d0,(a0)+
 		getMore	NE_DATAPORT,d1
 		move.b	d1,(a0)+
 		cmp.b	d0,d1			; check for doubled up values
-		beq.b	.c2
+		beq.b	c2_probe
 		move	#1,pbWordLen
-.c2		dbra	d2,.t2
+c2_probe:
+		dbra	d2,t2_probe
 
 		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; ack intr.
+		putBUS	#(1<<ENISR_RDC),EN0_ISR	; ack intr.
 
 	IFNE	0
 		PollKey
 		tst	d0
-		beq	.again
+		beq	again_probe
 
 		WaitKey
 	ENDC
@@ -136,13 +135,14 @@ ne_probe
 	IFNE	1
 		lea	pbSA_prom,a0
 		moveq	#NBSA_prom/4-1,d2
-***		PrA	<$1b,"H">
+***		PrA	33,"H"
 
-.t3		PrL	(a0)+
+t3_probe:
+		PrL	(a0)+
 		PrS	crlf(pc)
-		dbra	d2,.t3
+		dbra	d2,t3_probe
 
-***		PrA	<$1b,"H">
+***		PrA	33,"H"
 		PrS	AnyKey(pc)
 		WaitKey
 	ENDC
@@ -151,37 +151,36 @@ ne_probe
 		rts
 
 
-.head1		DC.B	"Interrupt Status register after Reset (should read $80): $",0
+head1:		DC.B	"Interrupt Status register after Reset (should read $80): $",0
 
-.head2		DC.B	"Reading the NE PROM.",13,10
+head2:		DC.B	"Reading the NE PROM.",13,10
 		DC.B	"The first 12 bytes are the 6 byte MAC address",13,10
 		DC.B	"Each byte is doubled up (this is normal):",13,10,0
 
-AnyKey		DC.B	"Press any Key"
-crlf		DC.B	13,10,0
+AnyKey:		DC.B	"Press any Key"
+crlf:		DC.B	13,10,0
 		EVEN
 
-pbSA_prom	DS.B	NBSA_prom
-pbWordLen	DS.W	1
+pbSA_prom:	DS.B	NBSA_prom
+pbWordLen:	DS.W	1
 *****************************************************************************
 
 
 
-_appl_yield	move.l	a2,-(sp)	; not needed for Pure C/GNU C, needed for Turbo C
+_appl_yield:
+		move.l	a2,-(sp)	; not needed for GNU C, needed for Pure C/Turbo C
 		move.w	#201,d0
 		trap #2
 		movea.l	(sp)+,a2
 		rts
 
 
-		INCLUDE	UTI.S
+		.INCLUDE	"uti.s"
 
 
-		SECTION	BSS
-lcl_irqlock	EQU	0
+		.BSS
 
-DVS		DS.W	1		; storage for dummy lcl_irqlock (EtherNEC only)
-		DS.B	256		; my stack area
+DVS:	DS.W	1		; storage for dummy lcl_irqlock (EtherNEC only)
 
 ******** end of HT2ENE.S ****************************************************
 

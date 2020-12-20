@@ -25,18 +25,18 @@ extern int __text, __data, __bss;
 #define FA_DIREC        0x10
 #define FA_ARCH         0x20
 
-#define S_IFCHR         0x01
-#define S_IFREG         0x02
-#define S_IFDIR         0x04
-#define S_IWRITE        0x08
-#define S_IREAD         0x10
-#define S_IEXEC         0x20
-
 #define MAXPATH   119
 #define MAXDRIVE  3
 #define MAXDIR    102
 #define MAXFILE   9
 #define MAXEXT    5
+
+#define S_IFCHR   0020000
+#define S_IFDIR   0040000
+#define S_IFREG   0100000
+#define S_IEXEC   0000100
+#define S_IREAD   0000400
+#define S_IWRITE  0000200
 
 typedef unsigned long size_t;
 
@@ -131,7 +131,7 @@ int         fstat( int handle, struct stat *statbuf );
 int         stat( char *path, struct stat *buff );
 
 int         isatty( int handle );
-size_t      filelength( int handle );
+long        filelength( int handle );
 
 size_t      coreleft( void );
 

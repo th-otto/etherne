@@ -26,22 +26,13 @@
 * development switches
 *
 
-		INCLUDE	DEVSWIT.I
+		.INCLUDE	"devswit.i"
 
 *
 * configuration switches
 *
 
 USEKERNEL	EQU	0		; we do not need to access the KERNEL via a pointer
-
-
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
 
 
 * entry points and references in this module
@@ -70,16 +61,16 @@ NERMAXPCKT	EQU	4			; max #packets hardware can receive rapidly
 *
 
 * my stuff
-		INCLUDE	UTI.I		; debugging and stack handling macros
+		.INCLUDE	"uti.i"		; debugging and stack handling macros
 
 * MNet stuff, offsets in netinfo and if
-		INCLUDE	INC_MNET\BUF.I
-		INCLUDE	INC_MNET\IF.I
-		INCLUDE	INC_MNET\NETINFO.I
+		.INCLUDE	"inc_mnet\buf.i"
+		.INCLUDE	"inc_mnet\if.i"
+		.INCLUDE	"inc_mnet\netinfo.i"
 
 
 
-		SECTION	TEXT
+		.TEXT
 
 
 *
@@ -98,29 +89,31 @@ NERMAXPCKT	EQU	4			; max #packets hardware can receive rapidly
 * fails.
 *
 
-RinNif		EQUR	a4
+RinNif		EQU	a4
 
 Rin		REG	d3/RinNif
 
-init		movem.l	Rin,-(sp)
+init:
+		movem.l	#Rin,-(sp)
 		move.l	16(sp),netinfo			; get pointer to netinfo
 	IFNE	USEKERNEL
 		move.l	12(sp),KERNEL
 	ENDC
 		jsr	ei_probe1
 		tst.l	d0				; found hardware?
-		beq.b	.c1
+		beq.b	c1_init
 		moveq	#1,d0
-		bra	.quit				; no quit
+		bra	quit_init				; no quit
 
-.c1		lea	if_ENE,RinNif			; this interface
+c1_init:
+		lea	if_ENE,RinNif			; this interface
 
 * Set interface unit. if_getfreeunit("name") returns a yet
 * unused unit number for the interface type "name".
 		If_getfreeunit	if_name(RinNif)
 	
 		move	d0,if_unit(RinNif)		; store unit
-		lea	.mess2(pc),a0
+		lea	mess2_init(pc),a0
 		add.b	d0,(a0)				; update interface name in message
 
 		lea	DVS+dev_dev_addr,a0		; copy MAC ei_probe1 got...
@@ -135,36 +128,41 @@ init		movem.l	Rin,-(sp)
 * say we are alive...
 		move.l	netinfo,a0
 		move.l	ni_fname(a0),d0			; print file name if existing
-		beq.b	.c2
+		beq.b	c2_init
 
 		move.l	d0,a0
 		PrS	(a0)
 
-.c2		PrS	.mess1(pc)			; print message
+c2_init:
+		PrS	mess1_init(pc)			; print message
 		lea	if_hwlocalAddr(RinNif),a0	; MAC
 		moveq	#5,d3
 
-.t1		PrB	(a0)+				; print a MAC byte
-		PrS	.colon(pc)			; print colon
-		dbra	d3,.t1
+t1_init:
+		PrB	(a0)+				; print a MAC byte
+		PrS	colon(pc)			; print colon
+		dbra	d3,t1_init
 
-		PrS	.bscrlf(pc)			; eat the last colon and CRLF
+		PrS	bscrlf(pc)			; eat the last colon and CRLF
 
 		bsr.b	NEInstInt			; install our HZ200 interrupt handler
 		moveq	#0,d0				; OK
 
-.quit		movem.l	(sp)+,Rin
+quit_init:
+		movem.l	(sp)+,#Rin
 		rts
 
-.mess1		DC.B	' EtherNE driver '
+mess1_init:
+		DC.B	' EtherNE driver '
 		VersionStr
 		DC.B	' (C) 2002 Dr. Thomas Redelberger',13,10
 		DC.B	'Device (en'
-.mess2		DC.B	'0) MAC: ',0
+mess2_init:
+		DC.B	'0) MAC: ',0
 
-.bscrlf		DC.B	8,32
-.crlf		DC.B	13,10,0
-.colon		DC.B	':',0
+bscrlf:		DC.B	8,32
+crlf:		DC.B	13,10,0
+colon:		DC.B	':',0
 		EVEN
 
 *********************************************************************************
@@ -175,15 +173,16 @@ init		movem.l	Rin,-(sp)
 
 HZ200TrapNo	EQU	$114/4 
 
-NEInstInt	move	sr,-(sp)		; save int. level
+NEInstInt:
+		move	sr,-(sp)		; save int. level
 		ori	#$700,sr		; disable all ints.
 
-		pea	.myHZ200(pc)		; new vector
+		pea	myHZ200(pc)		; new vector
 		move.w	#HZ200TrapNo,-(sp)
 		move.w	#5,-(sp)		; Setexc
 		trap	#13			; BIOS
 		addq.l	#8,sp
-		lea	.oldHZ200(pc),a0
+		lea	oldHZ200(pc),a0
 		move.l	d0,(a0)			; save old vector
 
 		move	(sp)+,sr		; restore ints.
@@ -192,27 +191,29 @@ NEInstInt	move	sr,-(sp)		; save int. level
 
 		DC.B	"XBRA"
 		DC.L	"TREN"
-.oldHZ200	DC.L	0
+oldHZ200:
+		DC.L	0
 
 
 *********************************************************************************
-* .myHZ200 is just a wrapper around ei_interrupt as ei_interrupt does not
+* myHZ200 is just a wrapper around ei_interrupt as ei_interrupt does not
 * preserve d0-d2 and a0-a1
 *********************************************************************************
 
 RmH		REG	d0-d2/a0-a2
 
-.myHZ200	movem.l	RmH,-(sp)
+myHZ200:
+		movem.l	#RmH,-(sp)
 
 		jsr	ei_interrupt
 
 		bsr	ENE_re_xmit
 
-		movem.l	(sp)+,RmH
+		movem.l	(sp)+,#RmH
 
 * _branch_ to the old vector without using a register;
 * the old vector will do the rte finally
-		move.l	.oldHZ200(pc),-(sp)
+		move.l	oldHZ200(pc),-(sp)
 		rts
 
 
@@ -223,7 +224,8 @@ RmH		REG	d0-d2/a0-a2
 * and the interface was down before.
 *
 
-ENE_open	jsr	ei_open
+ENE_open:
+		jsr	ei_open
 		rts
 
 
@@ -233,7 +235,8 @@ ENE_open	jsr	ei_open
 * is done and the interface was up before.
 *
 
-ENE_close	jsr	ei_close
+ENE_close:
+		jsr	ei_close
 		rts
 
 
@@ -242,12 +245,13 @@ ENE_close	jsr	ei_close
 *
 * we need to put back into the queue, but if_putback is missing from struct netinfo
 *
-RipBuf		EQUR	a3
-RipQSnd		EQUR	a4
+RipBuf		EQU	a3
+RipQSnd		EQU	a4
 
 Rip		REG	d3-d4/RipBuf/RipQSnd
 
-if_putback	movem.l	Rip,-(sp)
+if_putback:
+		movem.l	#Rip,-(sp)
 		move.l	a0,RipQSnd			; save arg: sndqueue
 		move.l	a1,RipBuf			; save arg: buf
 		move	d0,d4				; save arg: pri
@@ -257,31 +261,35 @@ if_putback	movem.l	Rip,-(sp)
 
 		move	q_qlen(RipQSnd),d1
 		cmp	q_maxqlen(RipQSnd),d1
-		bge.b	.err
+		bge.b	err_putback
 
 		cmp	#IF_PRIORITIES,d4		; pri >= Priorities ?
-		bcs.b	.c2				; fix to maximum
+		bcs.b	c2_putback			; fix to maximum
 		moveq	#IF_PRIORITIES-1,d4
-.c2		lsl	#2,d4				; ->longword index
+c2_putback:
+		lsl	#2,d4				; ->longword index
 		move.l	q_qfirst(RipQSnd,d4),bf_link3(RipBuf)	; buf->link3 = q->qfirst[pri]
 		move.l	RipBuf,q_qfirst(RipQSnd,d4)	; q->qfirst[pri] = buf
 		tst.l	q_qlast(RipQSnd,d4)		; if (!q->qlast[pri])
-		bne.b	.c3
+		bne.b	c3_putback
 		move.l	RipBuf,q_qlast(RipQSnd,d4)	; q->qlast[pri] = buf
 
-.c3		addq	#1,q_qlen(RipQSnd)		; q->qlen++
+c3_putback:
+		addq	#1,q_qlen(RipQSnd)		; q->qlen++
 		move	d3,sr				; restore ints.
 		moveq	#0,d0				; OK
 
-.quit		movem.l	(sp)+,Rip
+quit_putback:
+		movem.l	(sp)+,#Rip
 		rts
 
 
 * queue full, dropping packet
-.err		Buf_deref	(RipBuf),#BUF_ATOMIC
+err_putback:
+		Buf_deref	(RipBuf),#BUF_ATOMIC
 		move	d3,sr				; restore ints.
 		moveq	#-3,d0				; error
-		bra.b	.quit
+		bra.b	quit_putback
 
 
 
@@ -293,19 +301,20 @@ if_putback	movem.l	Rip,-(sp)
 * back in the queue
 *
 
-RrxBuf		EQUR	a3
-RrxNif		EQUR	a4
+RrxBuf		EQU	a3
+RrxNif		EQU	a4
 
 Rrx		REG	RrxBuf/RrxNif
 
-ENE_re_xmit	movem.l	Rrx,-(sp)
+ENE_re_xmit:
+		movem.l	#Rrx,-(sp)
 		lea	if_ENE,RrxNif
 		move	if_snd+q_qlen(RrxNif),d0	; something to send?
-		ble.b	.quit
+		ble.b	quit_xmit
 
 		If_dequeue	if_snd(RrxNif)
 		tst.l	d0
-		beq.b	.quit
+		beq.b	quit_xmit
 
 		move.l	d0,RrxBuf			; buf
 		moveq	#0,d1				; arg4: length second portion=0
@@ -315,21 +324,22 @@ ENE_re_xmit	movem.l	Rrx,-(sp)
 		sub.l	a0,d0				; arg2: length  first portion
 		jsr	ei_start_xmit
 		tst.l	d0				; successfully sent?
-		bne.b	.sendlater
+		bne.b	sendlater
 
 		addq.l	#1,if_out_packets(RrxNif)	; yes
 		Buf_deref	(RrxBuf),#BUF_NORMAL
 
-.quit		movem.l	(sp)+,Rrx
+quit_xmit:
+		movem.l	(sp)+,#Rrx
 		rts
 
 
-.sendlater
+sendlater:
 		move.l	bf_info(RrxBuf),d0		; arg3: info
 		move.l	RrxBuf,a1			; arg2: buf
 		lea	if_snd(RrxNif),a0		; arg1: if_snd
 		bsr	if_putback
-		bra.b	.quit
+		bra.b	quit_xmit
 
 
 
@@ -449,12 +459,13 @@ ENE_re_xmit	movem.l	Rrx,-(sp)
 *	addroottimeout (..., ..., 1);
 *
 
-ReoNBuf		EQUR	a3
-ReoNif		EQUR	a4
+ReoNBuf		EQU	a3
+ReoNif		EQU	a4
 
 Reo		REG	ReoNBuf/ReoNif
 
-ENE_output	movem.l	Reo,-(sp)
+ENE_output:
+		movem.l	#Reo,-(sp)
 		move.l	12(sp),ReoNif		; save arg1: *nif
 		move.l	16(sp),a0		; arg2: *buf
 		move.l	20(sp),a1		; arg3: *hwaddr
@@ -473,13 +484,13 @@ ENE_output	movem.l	Reo,-(sp)
 
 		Eth_build_hdr	(a0),(ReoNif),(a1),26(sp)
 		tst.l	d0
-		beq.b	.err1
+		beq.b	err1_output
 
 		move.l	d0,ReoNBuf			; nbuf
 
 * Before sending it pass it to the packet filter.
 		tst.l	if_bpf(ReoNif)			; packet filter present?
-		beq.b	.c2
+		beq.b	c2_output
 
 		Bpf_input	(ReoNif),(ReoNBuf)
 
@@ -487,41 +498,46 @@ ENE_output	movem.l	Reo,-(sp)
 * send the next packet as soon as the hardware is finished.
 *
 * If you are done sending the packet free it with buf_deref().
-.c2		move.l	bf_dend(ReoNBuf),d0
+c2_output:
+		move.l	bf_dend(ReoNBuf),d0
 		move.l	bf_dstart(ReoNBuf),a0
 		sub.l	a0,d0
 		cmp	#ETH_HLEN+ETH_MIN_DLEN,d0
-		bge.b	.c3
+		bge.b	c3_output
 
 		moveq	#ETH_HLEN+ETH_MIN_DLEN,d0	; must at least be this long
 
-.c3		moveq	#0,d1				; arg4: length second portion=0
+c3_output:
+		moveq	#0,d1				; arg4: length second portion=0
 		suba.l	a1,a1				; arg3: NULL
 **		move	d0,d0				; arg2: length  first portion
 **		move.l	a0,a0				; arg1: address first portion
 		jsr	ei_start_xmit			; send the packet
 		tst.l	d0				; succesful?
-		bne.b	.c4
+		bne.b	c4_output
 
 * success, do not need it any more
 		addq.l	#1,if_out_packets(ReoNif)
 
 		Buf_deref	(ReoNBuf),#BUF_NORMAL
-		bra.b	.exit
+		bra.b	exit_output
 
 * no success, queue it
-.c4
+c4_output:
 		If_enqueue	if_snd(ReoNif),(ReoNBuf),bf_info(ReoNBuf)
 
-.exit		moveq	#0,d0				; OK
+exit_output:
+		moveq	#0,d0				; OK
 
-.quit		movem.l	(sp)+,Reo
+quit_output:
+		movem.l	(sp)+,#Reo
 		rts
 
 
-.err1		addq.l	#1,if_out_errors(ReoNif)
+err1_output:
+		addq.l	#1,if_out_errors(ReoNif)
 		moveq	#-3,d0
-		bra.b	.quit
+		bra.b	quit_output
 
 
 
@@ -537,48 +553,51 @@ ENE_output	movem.l	Reo,-(sp)
 * them look at slip.c
 *
 
-SIOCSIFNETMASK	EQU	('S'<<8)!22		; set network PA mask */
-SIOCSIFFLAGS	EQU	('S'<<8)!14		; set flags */
-SIOCSIFADDR	EQU	('S'<<8)!16		; set PA address */
+SIOCSIFNETMASK	EQU	('S'<<8)+22		; set network PA mask */
+SIOCSIFFLAGS	EQU	('S'<<8)+14		; set flags */
+SIOCSIFADDR	EQU	('S'<<8)+16		; set PA address */
 	
-SIOCSIFMTU	EQU	('S'<<8)!28		; set MTU size
+SIOCSIFMTU	EQU	('S'<<8)+28		; set MTU size
 
-SIOCSIFOPT	EQU	('S'<<8)!52		; set interface option
+SIOCSIFOPT	EQU	('S'<<8)+52		; set interface option
 
 ifru_data	EQU	16
 
-RioNif		EQUR	a4
+RioNif		EQU	a4
 
 
-ENE_ioctl	move.l	RioNif,-(sp)		; save used Regs
+ENE_ioctl:
+	move.l	RioNif,-(sp)		; save used Regs
 		move.l	8(sp),RioNif		; arg1: nif
 		move	12(sp),d0		; arg2: cmd
 
 		cmp	#SIOCSIFNETMASK,d0
-		beq.b	.exit
+		beq.b	exit_ioctl
 		cmp	#SIOCSIFFLAGS,d0
-		beq.b	.exit
+		beq.b	exit_ioctl
 		cmp	#SIOCSIFADDR,d0
-		beq.b	.exit
+		beq.b	exit_ioctl
 
 
 		cmp	#SIOCSIFMTU,d0
-		bne.b	.c1
+		bne.b	c1_ioctl
 
 * Limit MTU to 1500 bytes. MintNet has alraedy set nif->mtu to the new value,
 * we only limit it here.
 		moveq.l	#0,d1			; unsigned extend
 		move	#ETH_MAX_DLEN,d1
 		cmp.l	if_mtu(RioNif),d1
-		bhi.b	.exit
+		bhi.b	exit_ioctl
 		move.l	d1,if_mtu(RioNif)
 
-.exit		moveq	#0,d0
-		bra.b	.quit
+exit_ioctl:
+		moveq	#0,d0
+		bra.b	quit_ioctl
 
 
-.c1		cmp	#SIOCSIFOPT,d0
-		bne.b	.c2
+c1_ioctl:
+		cmp	#SIOCSIFOPT,d0
+		bne.b	c2_ioctl
 
 * Interface configuration, handled by ENE_config()
 		move.l	14(sp),a0		; this function arg3: arg
@@ -586,11 +605,13 @@ ENE_ioctl	move.l	RioNif,-(sp)		; save used Regs
 		move.l	ifru_data(a0),a1	; arg2: ifo
 		move.l	RioNif,a0		; arg1: nif
 		jsr	ENE_config
-		bra.b	.quit			; return RC of ENE_config
+		bra.b	quit_ioctl			; return RC of ENE_config
 
-.c2		moveq	#-1,d0
+c2_ioctl:
+		moveq	#-1,d0
 
-.quit		move.l	(sp)+,RioNif
+quit_ioctl:
+		move.l	(sp)+,RioNif
 		rts
 
 
@@ -609,16 +630,18 @@ ENE_ioctl	move.l	RioNif,-(sp)		; save used Regs
 * 0			Ok
 *
 
-ENE_config	moveq	#0,d0
+ENE_config:
+		moveq	#0,d0
 		rts
 
 
 *********************************************************************************
 
 * do what you can do at compile time...
-		SECTION	DATA
+		.DATA
 
-if_ENE		DC.B	'e','n',0,0,0,0,0,0,0,0,0,0,0,0,0,0	; char name[IF_NAMSIZ]
+if_ENE:
+		DC.B	'e','n',0,0,0,0,0,0,0,0,0,0,0,0,0,0	; char name[IF_NAMSIZ]
 		DC.W	0					; short unit
 		DC.W	2					; ushort flags
 		DC.L	0					; ulong metric
@@ -663,13 +686,14 @@ NDif		EQU	*-if_ENE
 		ENDC
 
 
-		SECTION	BSS
+		.BSS
 
 	IFNE	USEKERNEL
-KERNEL		DS.L	1
+KERNEL:		DS.L	1
 	ENDC
 
-netinfo		DS.L	1
+netinfo:
+		DS.L	1
 		END
 
 ******** end of enemnet.s *******************************************************

@@ -23,8 +23,8 @@ $Id: enestng.c 1.3 2002/06/08 16:07:50 Thomas Exp Thomas $
 #define	NULL ((void*) 0L)
 #include <tos.h>
 
-#include "transprt.h"
-#include "port.h"
+#include "inc_stng/transprt.h"
+#include "inc_stng/port.h"
 
 #include "ne.h"
 #include "uti.h"
@@ -193,7 +193,7 @@ static struct {
  * The function main below MUST be the first one in the text segment
  */
 
-static void cdecl main (BASPAG *bp)
+void cdecl main (BASPAG *bp)
 {
 	static char	fault[] = "ENE??.STX: STinG extension module. To be started by STinG!\r\n";
 	DRV_LIST *sting_drivers;

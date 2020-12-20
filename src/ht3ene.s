@@ -15,15 +15,6 @@
 * $Id: ht3ene.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
 *
 
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
-
-
 * references from NE.S
 		XREF	ei_probe1			; (void);
 		XREF	ei_open				; (void);
@@ -34,19 +25,20 @@
 		XDEF	rtrvPckt
 
 		
-		INCLUDE	UTI.I
+		.INCLUDE	"uti.i"
 
-		INCLUDE	BUS.I
+		.INCLUDE	"bus.i"
 
-		INCLUDE	8390.I
+		.INCLUDE	"8390.i"
 
 N8390Hdr	EQU	4		; the 8390 chip stores a 4 byte header preceeding the packet
 
 
-		SECTION	TEXT
+		.TEXT
 
 * set stack and give back unused memory
-myStart		move.l	4(sp),a0		; get pointer to basepage
+myStart:
+		move.l	4(sp),a0		; get pointer to basepage
 		move.l	$18(a0),d0		; get start of BSS
 		add.l	$1c(a0),d0		; +BSS length=points beyond BSS
 		move.l	d0,sp			; here starts our stack
@@ -58,14 +50,14 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		trap	#1			; GemDos
 		lea	12(sp),sp		; pop args
 
-		PrS	.m1(pc)			; TaTa
+		PrS	m1(pc)			; TaTa
 
 *** test starts here
 		IFNE	0
 * do it in user mode
 		bsr	test3
 
-		ELSEIF
+		ELSE
 * do it in super mode
 		pea	test3(pc)
 		move.w	#$26,-(sp)		; Supexec
@@ -80,7 +72,7 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		illegal				; should never get here
 
 
-.m1		DC.B	$1b,"pTest EtherNE hardware #3",$1b,"q",13,10
+m1:		DC.B	$1b,"pTest EtherNE hardware #3",$1b,"q",13,10
 		DC.B	"(C)2002 Dr. Thomas Redelberger",13,10,0
 		EVEN
 
@@ -93,35 +85,40 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 * hardware test from terminal 
 *********************************************************************************
 
-test3		jsr	ei_probe1
+test3:
+		jsr	ei_probe1
 		jsr	ei_open
 
 
-.t1		WaitKey
+t1_test3:
+		WaitKey
 		cmp.b	#'x',d0
-		beq.b	.quit
+		beq.b	quit_test3
 		cmp.b	#'r',d0
-		beq.b	.c1
+		beq.b	c1_test3
 		cmp.b	#'t',d0
-		beq.b	.c2
-		bra.b	.t1
+		beq.b	c2_test3
+		bra.b	t1_test3
 
-.c1		jsr	ei_interrupt
-		bra.b	.t1
+c1_test3:
+		jsr	ei_interrupt
+		bra.b	t1_test3
 
-.c2		move	#NtstPacket,d0
+c2_test3:
+		move	#NtstPacket,d0
 		lea	tstPacket,a0
 		moveq	#0,d1
 		suba.l	a1,a1
 		jsr	ei_start_xmit
-		bra.b	.t1
+		bra.b	t1_test3
 
 		
-.quit		jsr	ei_close
+quit_test3:
+		jsr	ei_close
 		rts
 
 
-		ELSEIF
+		ELSE
 
 
 *********************************************************************************
@@ -131,7 +128,8 @@ test3		jsr	ei_probe1
 nvbls		EQU	$454		; (w) number of vbl slots (unused)
 _vblqueue	EQU	$456		; (l) points to array of vbl slots (unused)
 
-test3		jsr	ei_probe1
+test3:
+		jsr	ei_probe1
 		jsr	ei_open
 
 * install receiver in vertical blank queue
@@ -139,55 +137,64 @@ test3		jsr	ei_probe1
 		move	nvbls\w,d0		; total number of slots
 		subq.w	#2,d0			; first slot is reserved for GEM
 
-.t0		addq.l	#4,a0			; first slot is reserved for GEM
+t0_test3:
+		addq.l	#4,a0			; first slot is reserved for GEM
 		tst.l	(a0)			; free slot?
-		dbeq	d0,.t0
+		dbeq	d0,t0_test3
 
-		bne.b	.err			; no free slot, quit
+		bne.b	err_test3			; no free slot, quit
 
 		move.l	#ei_interrupt,(a0)	; install my VBL handler
 
 
 * simulate transmitting
-.t1		WaitKey
+t1_test3:
+		WaitKey
 		cmp.b	#'x',d0
-		beq.b	.finish
+		beq.b	finish_test3
 		cmp.b	#'t',d0
-		beq.b	.c2
-		bra.b	.t1
+		beq.b	c2_test3
+		bra.b	t1_test3
 
-.c2		move	#NtstPacket,d0
+c2_test3:
+		move	#NtstPacket,d0
 		lea	tstPacket,a0
 		moveq	#0,d1
 		suba.l	a1,a1
 		jsr	ei_start_xmit
-		bra.b	.t1
+		bra.b	t1_test3
 
 
 * deinstall my VBL handler
-.finish		move.l	_vblqueue\w,a0		; get address of first slot
+finish_test3:
+		move.l	_vblqueue\w,a0		; get address of first slot
 		move	nvbls\w,d0		; total number of slots
 		subq.w	#2,d0			; first slot is reserved for GEM
 
-.t2		addq.l	#4,a0			; first slot is reserved for GEM
+t2_test3:
+		addq.l	#4,a0			; first slot is reserved for GEM
 		cmp.l	#ei_interrupt,(a0)	; found my guy?
-		bne.b	.b2
+		bne.b	b2_test3
 		clr.l	(a0)			; yes, deinstall it
-.b2		dbra	d0,.t2
+b2_test3:
+		dbra	d0,t2_test3
 
-.quit		jsr	ei_close
+quit_test3:
+		jsr	ei_close
 		rts
 
 
-.err		PrA	<"No free VBL slot, quit",13,10>
-		bra.b	.quit
+err_test3:
+		PrA	"No free VBL slot, quit",13,10
+		bra.b	quit_test3
 
 
 		ENDC	; 0/1
 
 
 
-tstPacket	DC.B	$00,$60,$97,$97,$93,$ff
+tstPacket:
+		DC.B	$00,$60,$97,$97,$93,$ff
 ;;;		DC.B	$ff,$ff,$ff,$ff,$ff,$ff
 		DC.B	$00,$00,$21,$23,$34,$87
 		DC.W	$0800
@@ -198,12 +205,12 @@ NtstPacket	EQU	*-tstPacket
 *********************************************************************************
 
 
-RrxPktLen	EQUR	d2		; as in NE.S
-RrxReadPg	EQUR	d4		; as in NE.S
+RrxPktLen	EQU	d2		; as in NE.S
+RrxReadPg	EQU	d4		; as in NE.S
 
-rtrvPckt
+rtrvPckt:
 		PrW	RrxPktLen
-		PrA	<" RrxPktLen",13,10>
+		PrA	" RrxPktLen",13,10
 
 
 		moveq	#0,d0
@@ -229,32 +236,35 @@ rtrvPckt
 
 		NE2RAM	a0,d1			; both regs get destroyed!
 		putBUS	#E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUS	#ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
+		putBUS	#(1<<ENISR_RDC),EN0_ISR	; reset remote DMA ready bit
 
 * dump the data to screen, 16 bytes per line
 		lea.l	pcktBuf,a0		; pointer to data
-.t1		moveq	#15,d0
+t1_rtrv:
+		moveq	#15,d0
 
-.t2		PrB	(a0)+
-		PrS	.space(pc)
+t2_rtrv:
+		PrB	(a0)+
+		PrS	space(pc)
 		subq.w	#1,RrxPktLen
-		dbeq	d0,.t2
+		dbeq	d0,t2_rtrv
 		
-		PrS	.crlf(pc)
+		PrS	crlf(pc)
 		tst	RrxPktLen
-		bne.b	.t1
+		bne.b	t1_rtrv
 
-		PrS	.crlf(pc)
+		PrS	crlf(pc)
 
 		moveq	#0,d0		; OK
 		rts
 
-.space		DC.B	" ",0
-.crlf		DC.B	13,10,0
+space:		DC.B	" ",0
+crlf:		DC.B	13,10,0
 
 
-		SECTION	BSS
-pcktBuf		DS.B	1600
+		.BSS
+pcktBuf:
+		DS.B	1600
 
 *** stack must be allocated by the linker!
 ***		DS.B	256		; my stack area

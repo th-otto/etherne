@@ -21,7 +21,9 @@
 * manifest constants
 *
 
-WORD_TRANSFER	EQU	1		; if defined enables 16-bit DMA
+BUGGY_HW	EQU	0		; if set enables code to handle buggy hardware
+
+WORD_TRANSFER	EQU	1		; if set enables 16-bit DMA
 
 *
 * hardware addresses
@@ -34,94 +36,97 @@ rom3		EQU	$00f10600	; EXP base address
 * macros
 *
 
-lockBUS		MACRO
+		MACRO lockBUS doNothing
 		moveq	#-1,d0			; preset error code
 		tas	DVS+lcl_irqlock		; check for race about EXP Port and
-		bne	.doNothing		; if somebody owns the bus we quit
+		bne	doNothing		; if somebody owns the bus we quit
 		ENDM
 
 
-lockBUSWait	MACRO
+		MACRO lockBUSWait.size
+		.LOCAL lt1
+		.LOCAL lc1
 * there should be a timeout based on _hz_200 (and then branch to .doNothing)
 
-.lt1\@		tas	DVS+lcl_irqlock		; check for race about EXP Port and
-		beq.b	.lc1\@			; if somebody owns the bus we *wait*
+lt1:		tas	DVS+lcl_irqlock		; check for race about EXP Port and
+		beq.b	lc1			; if somebody owns the bus we *wait*
 
-		bsr	_appl_yield		; wait
-		bra.b	.lt1\@
+		bsr.size	_appl_yield		; wait
+		bra.b	lt1
 
-.lc1\@						; proceed
+lc1:						; proceed
 		ENDM
 
 
-unlockBUS	MACRO
+		MACRO unlockBUS
 		sf	DVS+lcl_irqlock		; let other tasks access EXP Port
 		ENDM
 
 
-unlockBUSWait	MACRO
+		MACRO unlockBUSWait
 		sf	DVS+lcl_irqlock		; let other tasks access Cartridge Port
 		ENDM
 
-RxBUS		EQUR	d7
-RyBUS		EQUR	d6
-RcBUS		EQUR	a5
-RdBUS		EQUR	a6
+
+RxBUS		EQU	d7
+RyBUS		EQU	d6
+RcBUS		EQU	a5
+RdBUS		EQU	a6
 
 
-ldBUSRegs	MACRO				; for faster access to hardware
+		MACRO ldBUSRegs				; for faster access to hardware
 		lea	rom3,RcBUS
 		lea	rom4,RdBUS
 		ENDM
 
 
-putBUS		MACRO
-		move.b	\1,(\2)<<1(RcBUS)
+		MACRO putBUS val,offset
+		move.b	val,(offset)<<1(RcBUS)
 		ENDM
 
 
-putMore		MACRO
-		putBUS \1,\2
+		MACRO putMore val,offset
+		putBUS val,offset
 		ENDM
 
-putBUSW		MACRO
-                move.w	\1,(\2)<<1(RcBUS)
-		ENDM
-
-
-putMoreW	MACRO
-                putBUSW \1,\2
+		MACRO putBUSW val,offset
+                move.w	val,(offset)<<1(RcBUS)
 		ENDM
 
 
-putBUSi		MACRO
-		putBUS	#\1,\2
+		MACRO putMoreW val,offset
+                putBUSW val,offset
 		ENDM
 
 
-getBUS		MACRO
-		move.b	(\1)<<1(RdBUS),\2
+		MACRO putBUSi val,offset
+		putBUS	#val,offset
 		ENDM
 
 
-getMore		MACRO
-		getBUS	\1,\2
+		MACRO getBUS offset,val
+		move.b	(offset)<<1(RdBUS),val
 		ENDM
 
 
-getBUSW		MACRO
-                move.w	(\1)<<1(RdBUS),\2
+		MACRO getMore offset,val
+		getBUS	offset,val
 		ENDM
 
 
-getMoreW	MACRO
-                getBUSW	\1,\2
+		MACRO getBUSW offset,val
+                move.w	(offset)<<1(RdBUS),val
+		ENDM
+
+
+		MACRO getMoreW offset,val
+                getBUSW	offset,val
 		ENDM
 
 *
 * macro to deselect an interface
 *
-deselBUS	MACRO
+		MACRO deselBUS
 * empty as the EXP port does not need deselecting
 		ENDM
 
@@ -137,29 +142,33 @@ deselBUS	MACRO
 * both registers plus d0 get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
-RAM2NE		MACRO
-		ext.l	\2			; clear upper word
-		ble	.doNothing\@		; nothing to do?
-	IFD	WORD_TRANSFER
-		move.l	\2,d0
-		lsr.l	#1,\2
+		MACRO RAM2NE addr,count
+		.LOCAL Rt1
+		.LOCAL Rb1
+		.LOCAL doNothing_ram2ne
+		ext.l	count			; clear upper word
+		ble.w	doNothing_ram2ne		; nothing to do? ; XXX
+	IFNE	WORD_TRANSFER
+		move.l	count,d0
+		lsr.l	#1,count
 	ENDC
-		bra.b	.Rb1\@
+		bra.b	Rb1
 
-	IFD	WORD_TRANSFER
-.Rt1\@		putMoreW (\1)+,NE_DATAPORT
+Rt1:
+	IFNE	WORD_TRANSFER
+		putMoreW (addr)+,NE_DATAPORT
 	ELSE
-.Rt1\@		putMore (\1)+,NE_DATAPORT
+		putMore (addr)+,NE_DATAPORT
 	ENDC
-.Rb1\@		dbra	\2,.Rt1\@
+Rb1:		dbra	count,Rt1
 
-	IFD	WORD_TRANSFER
+	IFNE	WORD_TRANSFER
 		lsr.l	#1,d0
-		bcc.b	.doNothing\@
-		putMore	(\1)+,NE_DATAPORT
+		bcc.b	doNothing_ram2ne
+		putMore	(addr)+,NE_DATAPORT
 	ENDC
 
-.doNothing\@
+doNothing_ram2ne:
 		ENDM
 
 
@@ -173,24 +182,28 @@ RAM2NE		MACRO
 *		MUST be even!
 *
 * both registers plus d0 get destroyed.
-* Assembler inst. REPT does not work inside a macro, we repeate explicitly
+* Assembler inst. REPT does not work inside a macro, we repeat explicitly
 
-NE2RAM		MACRO
-		ext.l	\2			; clear upper word
-		ble.b	.doNothing\@		; nothing to do?
-	IFD	WORD_TRANSFER
-		lsr.l	#1,\2
+		MACRO NE2RAM addr,count
+		.LOCAL Nt1
+		.LOCAL Nb1
+		.LOCAL doNothing_ne2ram
+		ext.l	count			; clear upper word
+		ble.b	doNothing_ne2ram		; nothing to do?
+	IFNE	WORD_TRANSFER
+		lsr.l	#1,count
 	ENDC
-		bra.b	.Nb1\@
+		bra.b	Nb1
 
-	IFD	WORD_TRANSFER
-.Nt1\@		getMoreW NE_DATAPORT,(\1)+
+Nt1:
+	IFNE	WORD_TRANSFER
+		getMoreW NE_DATAPORT,(addr)+
 	ELSE
-.Nt1\@		getMore NE_DATAPORT,(\1)+
+		getMore NE_DATAPORT,(addr)+
 	ENDC
-.Nb1\@		dbra	\2,.Nt1\@
+Nb1:		dbra	count,Nt1
 
-.doNothing\@
+doNothing_ne2ram:
 		ENDM
 
 

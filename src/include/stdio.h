@@ -35,11 +35,11 @@ typedef struct
 
 /****** FileIo constants ************************************************/
 
-#define NULL        ( ( void * ) 0L )
+#define NULL        ((void *)0)
 #define OPEN_MAX        32
 #define FOPEN_MAX       32
-#define FILENAME_MAX    119
-#define PATH_MAX        119
+#define FILENAME_MAX    128
+#define PATH_MAX        128
 #define BUFSIZ          1024
 #define EOF             (-1)
 
@@ -55,7 +55,7 @@ typedef struct
 #define SEEK_CUR    1
 #define SEEK_END    2
 
-#define TMP_MAX     100
+#define TMP_MAX     65535
 #define L_tmpnam    13
 
 #define _IOFBF      0
@@ -115,7 +115,7 @@ int     scanf( const char *format, ... );
 void    setbuf( FILE *stream, char *buf );
 int     setvbuf( FILE *stream, char *buf, int type, size_t size );
 int     sprintf( char *string, const char *format, ... );
-int     sscanf( char *string, const char *format, ... );
+int     sscanf( const char *string, const char *format, ... );
 char    *tmpnam( char *s );
 FILE    *tmpfile( void );
 int     ungetc( int ch, FILE *stream );

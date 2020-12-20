@@ -21,8 +21,8 @@
 MajVersion	EQU	1
 MinVersion	EQU	15
 
-VersionStr	MACRO
-		DC.B	'v\<MajVersion>.\<MinVersion> prd'
+		MACRO VersionStr
+		DC.B	'v1.15 prd'
 		ENDM
 
 

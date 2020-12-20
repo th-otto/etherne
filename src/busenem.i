@@ -24,6 +24,8 @@
 
 BUGGY_HW	EQU	1		; if defined enables code to handle buggy hardware
 
+WORD_TRANSFER	EQU	0		; if set enables 16-bit DMA
+
 *
 * hardware addresses
 *
@@ -35,75 +37,77 @@ NE_IO_BASE	EQU	$300		; if your card is somewhere else change it.
 * macros
 *
 
-lockBUS		MACRO
+		MACRO lockBUS.size doNothing
 		moveq	#-1,d0			; preset error code
 		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
-		bne	.doNothing		; if somebody owns the bus we quit
+		bne.size	doNothing       ; if somebody owns the bus we quit
 		ENDM
 
 
-lockBUSWait	MACRO
+		MACRO lockBUSWait.size
+		.LOCAL lt1
+		.LOCAL lc1
 * there should be a timeout based on _hz_200 (and then branch to .doNothing)
 
-.lt1\@		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
-		beq.b	.lc1\@			; if somebody owns the bus we *wait*
+lt1:		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
+		beq.b	lc1			; if somebody owns the bus we *wait*
 
-		bsr	_appl_yield		; wait
-		bra.b	.lt1\@
+		bsr.size	_appl_yield		; wait
+		bra.b	lt1
 
-.lc1\@						; proceed
+lc1:						; proceed
 		ENDM
 
 
-unlockBUS	MACRO
+		MACRO unlockBUS
 		sf	DVS+lcl_irqlock		; let other tasks access this device
 		ENDM
 
 
-unlockBUSWait	MACRO
+		MACRO unlockBUSWait
 		sf	DVS+lcl_irqlock		; let other tasks access this device
 		ENDM
 
 
-RxBUS		EQUR	d6			; unused here
-RyBUS		EQUR	d7			; unused here
-RcBUS		EQUR	a5
-RdBUS		EQUR	a6			; used temporarily
+RxBUS		EQU	d6			; unused here
+RyBUS		EQU	d7			; unused here
+RcBUS		EQU	a5
+RdBUS		EQU	a6			; used temporarily
 
 
-ldBUSRegs	MACRO				; for faster access to hardware
+		MACRO ldBUSRegs				; for faster access to hardware
 		lea	ISA_BASE+NE_IO_BASE,RcBUS
 		ENDM
 
 
-putBUS		MACRO
-		move.b	\1,(\2)^3(RcBUS)
+		MACRO putBUS val,offset
+		move.b	val,(offset)^3(RcBUS)
 		ENDM
 
 
-putMore		MACRO
-		move.b	\1,(\2)^3(RcBUS)
+		MACRO putMore val,offset
+		move.b	val,(offset)^3(RcBUS)
 		ENDM
 
 
-putBUSi		MACRO
-		putBUS	#\1,\2
+		MACRO putBUSi val,offset
+		putBUS	#val,offset
 		ENDM
 
 
-getBUS		MACRO
-		move.b	(\1)^3(RcBUS),\2
+		MACRO getBUS offset,val
+		move.b	(offset)^3(RcBUS),val
 		ENDM
 
 
-getMore		MACRO
-		move.b	(\1)^3(RcBUS),\2
+		MACRO getMore offset,val
+		getBUS offset,val
 		ENDM
 
 *
 * macro to deselect an interface
 *
-deselBUS	MACRO
+		MACRO deselBUS
 * empty as the Milan ISA bus does not need deselecting
 		ENDM
 
@@ -119,34 +123,41 @@ deselBUS	MACRO
 * both registers plus d0 get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 	
-RAM2NE		MACRO
-		ext.l	\2			; clear upper word
-		ble	.doNothing\@		; nothing to do?
+		MACRO RAM2NE addr,count
+		.LOCAL Rt1
+		.LOCAL Rb1
+		.LOCAL Rt2
+		.LOCAL Rb2
+		.LOCAL doNothing_ram2ne
+		ext.l	count			; clear upper word
+		ble.w	doNothing_ram2ne	; nothing to do? ; XXX
 
 		lea	(NE_DATAPORT)^3(RcBUS),RdBUS
 
 * put the packet; optimized for speed, we do 8 bytes at once
-		ror.l	#3,\2			; store remainder in upper word
-		bra.b	.Rb1\@
+		ror.l	#3,count		; store remainder in upper word
+		bra.b	Rb1
 
-.Rt1\@		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-		move.b	(\1)+,(RdBUS)
-.Rb1\@		dbra	\2,.Rt1\@
+Rt1:		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+		move.b	(addr)+,(RdBUS)
+Rb1:		dbra	count,Rt1
 
-		clr.w	\2			; prepare for remainder
-		rol.l	#3,\2			; restore remainder bits
-		bra.b	.Rb2\@
+		clr.w	count			; prepare for remainder
+		rol.l	#3,count		; restore remainder bits
+		bra.b	Rb2
 
-.Rt2\@		move.b	(\1)+,(RdBUS)		; put the remaining bytes
-.Rb2\@		dbra	\2,.Rt2\@
+Rt2:
+		move.b	(addr)+,(RdBUS)		; put the remaining bytes
+Rb2:
+		dbra	count,Rt2
 
-.doNothing\@
+doNothing_ram2ne:
 		ENDM
 
 
@@ -161,36 +172,45 @@ RAM2NE		MACRO
 * both registers get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
-NE2RAM		MACRO
+		MACRO NE2RAM addr,count
+		.LOCAL Nt1
+		.LOCAL Nb1
+		.LOCAL Nt2
+		.LOCAL Nb2
+		.LOCAL doNothing_ne2ram
 		lea	(NE_DATAPORT)^3(RcBUS),RdBUS	; register to point to data bus
-		ext.l	\2			; clear upper word
-		ble.b	.doNothing\@		; nothing to do?
+		ext.l	count			; clear upper word
+		ble.b	doNothing_ne2ram	; nothing to do?
 
 * get the Packet; optimized for speed, we do 8 bytes at once.
-		ror.l	#3,\2			; store remainder in upper word
-		bra.b	.Nb1\@
+		ror.l	#3,count			; store remainder in upper word
+		bra.b	Nb1
 
-.Nt1\@		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-.Nb1\@		dbra	\2,.Nt1\@
+Nt1:
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+Nb1:
+		dbra	count,Nt1
 
-		clr.w	\2				; prepare for remainder
+		clr.w	count				; prepare for remainder
 * rol.l #2 instead of #3 because we write TWO bytes in a loop iteration not a byte
 * thus the lowest significant bit (which shall be 0 anyway) is not used
-		rol.l	#2,\2				; restore remainder bits
-		bra.b	.Nb2\@
+		rol.l	#2,count				; restore remainder bits
+		bra.b	Nb2
 
-.Nt2\@		move.b	(RdBUS),(\1)+
-		move.b	(RdBUS),(\1)+
-.Nb2\@		dbra	\2,.Nt2\@
+Nt2:
+		move.b	(RdBUS),(addr)+
+		move.b	(RdBUS),(addr)+
+Nb2:
+		dbra	count,Nt2
 
-.doNothing\@
+doNothing_ne2ram:
 		ENDM
 
 

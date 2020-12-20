@@ -21,7 +21,7 @@ $Id: uti.h 1.1 2002/03/24 13:46:52 Thomas Exp Thomas $
 
 /* printing functions via the BIOS concole */
 
-extern	void	cdecl	prntStr(char* string);
+extern	void	cdecl	prntStr(const char* string);
 extern	void	cdecl	prntLong(uint32);
 extern	void	cdecl	prntWord(uint16);
 extern	void	cdecl	prntByte(uint8);

@@ -27,16 +27,7 @@
 * development switches
 *
 
-		INCLUDE	DEVSWIT.I
-
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
-
+		.INCLUDE	"devswit.i"
 
 * entry points and references in this module
 		XDEF	rtrvPckt	; (); get packet out of the card
@@ -51,17 +42,17 @@
 *
 
 * my stuff
-		INCLUDE	UTI.I		; debugging and stack handling macros
-		INCLUDE	BUS.I		; ACSI or Cartridge Port hardware macros
-		INCLUDE	8390.I		; Symbols for 8390 chip registers
+		.INCLUDE	"uti.i"		; debugging and stack handling macros
+		.INCLUDE	"bus.i"		; ACSI or Cartridge Port hardware macros
+		.INCLUDE	"8390.i"	; Symbols for 8390 chip registers
 
 * MNet stuff, offsets in netinfo and if
-		INCLUDE	INC_MNET\IF.I
-		INCLUDE	INC_MNET\BUF.I
-		INCLUDE	INC_MNET\NETINFO.I
+		.INCLUDE	"inc_mnet\if.i"
+		.INCLUDE	"inc_mnet\buf.i"
+		.INCLUDE	"inc_mnet\netinfo.i"
 
 
-		SECTION	TEXT
+		.TEXT
 
 
 ******** declarations for ethernet **********************************************
@@ -77,7 +68,7 @@ NCRC		EQU	4		; 4 trailing CRC bytes of a ethernet packet
 *
 * This function effects to get the packet out of the NEx000 card into the ST RAM
 *
-* in:	RrxJnk8990	(d1) Junk 8390 header occured from 8990 chip (only IFD BUGGY_HW)
+* in:	RrxJnk8990	(d1) Junk 8390 header occured from 8990 chip (only IF BUGGY_HW)
 *	RrxPktLen	(d2) The raw ethernet packet length
 *	RrxReadPg	(d4) Page where the packet starts
 *
@@ -106,30 +97,30 @@ NCRC		EQU	4		; 4 trailing CRC bytes of a ethernet packet
 *
 
 * local variables in registers
-	IFD	BUGGY_HW
-RrxJnk8990	EQUR	d1		; as in NE.S
+	IFNE	BUGGY_HW
+RrxJnk8990	EQU	d1		; as in NE.S
 	ENDC
-RrxPktLen	EQUR	d2		; as in NE.S
-RrxReadPg	EQUR	d4		; as in NE.S
+RrxPktLen	EQU	d2		; as in NE.S
+RrxReadPg	EQU	d4		; as in NE.S
 
-RrpPktLen	EQUR	d3		; local copy of RrxPktLen
+RrpPktLen	EQU	d3		; local copy of RrxPktLen
 
-RrpBuf		EQUR	a3		; points to the new buffer
-RrpNif		EQUR	a4		; points to the interface struct if_ENE
+RrpBuf		EQU	a3		; points to the new buffer
+RrpNif		EQU	a4		; points to the interface struct if_ENE
 
-	IFD	BUGGY_HW
+	IFNE	BUGGY_HW
 * local variables in memory
 rxJnk8990	EQU	0		; because d1 gets destroyed
 	ENDC
 
-rtrvPckt
+rtrvPckt:
 	IFGE	RXDEBPRT-999
 		PrW	RrxPktLen
-		PrA	<" RrxPktLen",13,10>
+		PrA	" RrxPktLen",13,10
 	ENDC
 		move.l	RrpNif,-(sp)		; save used reg.
 		move	RrpPktLen,-(sp)		; save used reg.
-	IFD	BUGGY_HW
+	IFNE	BUGGY_HW
 		move.b	RrxJnk8990,-(sp)	; copy to memory (2 bytes pushed!)
 	ENDC
 		move	RrxPktLen,RrpPktLen	; copy because d2 gets destroyed
@@ -144,7 +135,7 @@ rtrvPckt
 
 		move.l	d0,RrpBuf		; buffer
 		tst.l	d0
-		beq	.err
+		beq	err_rtrv
 
 		moveq	#0,d0
 		move	RrpPktLen,d0		; unsigned extend
@@ -159,42 +150,43 @@ rtrvPckt
 		putBUS	RrxReadPg,EN0_RSARHI	; we start at this page
 		putBUSi	E8390_RREAD+E8390_START,E8390_CMD	; go
 
-	IFD	BUGGY_HW
+	IFNE	BUGGY_HW
 * note that the data is shifted by one byte in case of a junk header, we need to do one more read
 		tst.b	rxJnk8990(sp)
-		beq.b	.c1
+		beq.b	c1_rtrv
 		getBUS	NE_DATAPORT,d0		; dummy read
 
-.c1
+c1_rtrv:
 	ENDC
 		move.l	bf_dstart(RrpBuf),a0	; pointer to data
 
 		NE2RAM	a0,RrpPktLen		; both regs get destroyed!
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; complete remote DMA
-		putBUSi	ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
+		putBUSi	(1<<ENISR_RDC),EN0_ISR	; reset remote DMA ready bit
 
 * pass packet to upper layers
 
 * input filtering?
 		tst.l	if_bpf(RrpNif)		; packet filter present?
-		beq.b	.c2
+		beq.b	c2_rtrv
 
 		Bpf_input	(RrpNif),(RrpBuf)
 
 * remove ethernet header (returns packet type in d0)
-.c2		Eth_remove_hdr	(RrpBuf)
+c2_rtrv:
+		Eth_remove_hdr	RrpBuf
 
 		moveq	#0,d1
 		If_input	(RrpNif),(RrpBuf),d1,d0
 
 		tst	d0			; error?
-		bne.b	.err
+		bne.b	err_rtrv
 
 		addq.l	#1,if_in_packets(RrpNif)	; statistics
 		moveq.l	#0,d0			; signal succes & fall thru to exit
 
-.exit
-	IFD	BUGGY_HW
+exit_rtrv:
+	IFNE	BUGGY_HW
 		addq.l	#2,sp			; pop local var.
 	ENDC
 		move	(sp)+,RrpPktLen		; restore used reg.
@@ -202,12 +194,13 @@ rtrvPckt
 		rts
 
 
-.err		moveq.l	#-1,d0			; signal error
+err_rtrv:
+		moveq.l	#-1,d0			; signal error
 		addq.l	#1,if_in_errors(RrpNif)	; statistics
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
 		getBUS	NE_DATAPORT,d1		; only this makes for a proper abort !!!
-		putBUSi	ENISR_RDC,EN0_ISR	; reset remote DMA ready bit
-		bra.b	.exit
+		putBUSi	(1<<ENISR_RDC),EN0_ISR	; reset remote DMA ready bit
+		bra.b	exit_rtrv
 
 
 ******** end of nemnet.s ********************************************************

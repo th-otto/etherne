@@ -11,9 +11,6 @@
 #define __STRING
 
 
-#define sys_nerr 35
-
-
 typedef unsigned long    size_t;
 
 

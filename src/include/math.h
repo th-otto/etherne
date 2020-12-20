@@ -10,7 +10,7 @@
 #if !defined( __MATH )
 #define __MATH
 
-#define HUGE_VAL    1.189731495357231765E+4932
+#define HUGE_VAL        1.189731495357231765E+4932
 
 #define M_E             2.71828182845904523536
 #define M_LOG2E         1.44269504088896340736
@@ -32,8 +32,8 @@ double  ceil( double x );
 double  floor( double x );
 double  round( double x );
 double  trunc( double x );
-double  fmod( double x, double y );
 
+double  fmod( double x, double y );
 double  exp( double x );
 double  log( double x );
 double  log10( double x );
@@ -49,6 +49,7 @@ double  sqrt( double x );
 double  cos( double x );
 double  sin( double x );
 double  tan( double x );
+void    sincos( double x, double *sin, double *cos );
 
 double  acos( double x );
 double  asin( double x );
@@ -90,6 +91,65 @@ void    setmatherr( int (*errorfunc)( struct exception *e ) );
 int     fpumode( int disable );
 void    xdcnv( double *val, void *rep8bytes );
 void    dxcnv( void *rep8bytes, double *val );
+
+#if defined( __68881__ )
+double  fint( double x );
+double  fintrz( double x );
+double  fgetexp( double x );
+double  fgetman( double x );
+double  frem( double x, double y );
+double  fsgldiv( double x, double y );
+double  fsglmul( double x, double y );
+double  fetoxm1( double x );
+double  flognp1( double x );
+double  pow2( double x );
+#endif
+
+#if defined( __68881__ ) && !defined( __NFPUIN__ )
+                                              /* MC68881 extensions */
+/* Arithmetische Befehle: */
+#define trunc( x )      __FINTRZ__( x )
+#define fabs( x )       __FABS__( x )
+#define fgetexp( x )    __FGETEXP__( x )
+#define fgetman( x )    __FGETMAN__( x )
+#define fint( x )       __FINT__( x )
+#define fintrz( x )     __FINTRZ__( x )
+#define fmod( x, y )    __FMOD__( y, x )
+#define frem( x, y )    __FREM__( y, x )
+#define ldexp( x, y )   __FSCALE__( y, x )
+#define fsgldiv( x, y ) __FSGLDIV__( y, x )
+#define fsglmul( x, y ) __FSGLMUL__( y, x )
+
+/* Potenzen und Logarithmen: */
+#define exp( x )        __FETOX__( x )
+#define fetoxm1( x )    __FETOXM1__( x )
+#define log( x )        __FLOGN__( x )
+#define flognp1( x )    __FLOGNP1__( x )
+#define log10( x )      __FLOG10__( x )
+#define log2( x )       __FLOG2__( x )
+#define sqrt( x )       __FSQRT__( x )
+#define pow10( x )      __FTENTOX__( x )
+#define pow2( x )       __FTWOTOX__( x )
+
+/* Trigonometrie: */
+#define acos( x )       __FACOS__( x )
+#define asin( x )       __FASIN__( x )
+#define atan( x )       __FATAN__( x )
+#define cos( x )        __FCOS__( x )
+#define sin( x )        __FSIN__( x )
+#define tan( x )        __FTAN__( x )
+
+/* Hyperbelfunktionen: */
+#define atanh( x )      __FATANH__( x )
+#define cosh( x )       __FCOSH__( x )
+#define sinh( x )       __FSINH__( x )
+#define tanh( x )       __FTANH__( x )
+
+/* Conversionsfunktionen nur fÅr TC881LIB.LIB */
+double x80x96cnv( void *rep10bytes );
+void   x96x80cnv( double rep12bytes, void *rep10bytes );
+
+#endif
 
 #endif
 

@@ -14,23 +14,17 @@
 * $Id: ht1ene.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
 *
 
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
-		
-		INCLUDE	UTI.I
+		.INCLUDE	"uti.i"
 
-		INCLUDE	BUS.I
+		.INCLUDE	"bus.i"
 
+lcl_irqlock	EQU	0
 
-		SECTION	TEXT
+		.TEXT
 
 * set stack and give back unused memory
-myStart		move.l	4(sp),a0		; get pointer to basepage
+myStart:
+		move.l	4(sp),a0		; get pointer to basepage
 		move.l	$18(a0),d0		; get start of BSS
 		add.l	$1c(a0),d0		; +BSS length=points beyond BSS
 		move.l	d0,sp			; here starts our stack
@@ -42,12 +36,12 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		trap	#1			; GemDos
 		lea	12(sp),sp		; pop args
 
-		PrS	.m1(pc)			; TaTa
+		PrS	m1(pc)			; TaTa
 
 *** test starts here
 	IFNE	0
 		bsr	do_test
-	ELSEIF
+	ELSE
 		pea	do_test(pc)		; must execute in super mode
 		move.w	#$26,-(sp)		; Supexec
 		trap	#14			; xbios
@@ -62,25 +56,25 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 
 
 
-.m1		DC.B	$1b,"pTest EtherNE hardware without NE card",$1b,"q",13,10
+m1:	DC.B	$1b,"pTest EtherNE hardware without NE card",$1b,"q",13,10
 		DC.B	"Software (C)2002 Dr. Thomas Redelberger",13,10,0
-		EVEN
+		.EVEN
 
 
 *********************************************************************************
 
 
-do_test
+do_test:
 		lockBUSWait			; aquire Bus
 		ldBUSRegs			; prepare registers
 
 
-.t1
+t1:
 * test ISA data lines
 	IFNE	1
 		getBUS	0,d0
 		PrB	d0
-		PrA	<13,10>
+		PrA	"",13,10
 	ENDC
 	IFNE	0
 		putBUS	#0,0
@@ -114,7 +108,7 @@ do_test
 
 		PollKey
 		tst	d0
-		beq	.t1
+		beq	t1
 
 
 		WaitKey				; eat the key
@@ -125,21 +119,20 @@ do_test
 
 
 
-_appl_yield	move.l	a2,-(sp)	; not needed for Pure C/GNU C, needed for Turbo C
+_appl_yield:
+		move.l	a2,-(sp)	; not needed for GNU C, needed for Pure C/Turbo C
 		move.w	#201,d0
 		trap #2
 		movea.l	(sp)+,a2
 		rts
 
 
-		INCLUDE	UTI.S
+		.INCLUDE	"uti.s"
 
 
-		SECTION	BSS
-lcl_irqlock	EQU	0
+		.BSS
 
-DVS		DS.W	1		; storage for dummy lcl_irqlock (EtherNEC only)
-		DS.B	256		; my stack area
+DVS:	DS.W	1		; storage for dummy lcl_irqlock (EtherNEC only)
 
 ******** end of HT1ENE.S ********************************************************
 

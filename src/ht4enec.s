@@ -13,33 +13,23 @@
 * $Id: ht4enec.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
 *
 
-*
-* code generation options
-*
-***		OPT	D+		; switch on symbol info
-		OPT	O+		; optimize 0(an) to (an)
-		OPT	W-		; warnings off
-		OPT	M+		; macro expansion in listings on
-		
-		INCLUDE	UTI.I
+		.INCLUDE	"uti.i"
 
-		INCLUDE	BUSENEC.I
+		.INCLUDE	"busenec0.i"
 
-putBUSr		MACRO
-		move.w	#(\2)<<8,RyBUS		; move ISA address to bits 8-15
+		MACRO putBUSr val,offset
+		move.w	#(offset)<<8,RyBUS		; move ISA address to bits 8-15
 		move.w	RyBUS,RxBUS		; get a copy
-		move.b	\1,RyBUS		; merge in data
+		move.b	val,RyBUS		; merge in data
 		add.w	RyBUS,RyBUS		; shift up one bit to avoid UDS/LDS ***
 		move.b	0(RcBUS,RyBUS.w),d0	; write by reading
 		ENDM
 
-
-
-
-		SECTION	TEXT
+		.TEXT
 
 * set stack and give back unused memory
-myStart		move.l	4(sp),a0		; get pointer to basepage
+myStart:
+		move.l	4(sp),a0		; get pointer to basepage
 		move.l	$18(a0),d0		; get start of BSS
 		add.l	$1c(a0),d0		; +BSS length=points beyond BSS
 		move.l	d0,sp			; here starts our stack
@@ -51,7 +41,7 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		trap	#1			; GemDos
 		lea	12(sp),sp		; pop args
 
-		PrS	.TaTa(pc)
+		PrS	TaTa(pc)
 
 *** test starts here
 * LIST +
@@ -60,9 +50,10 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 
 
 * write to ISA data lines and read back
-		PrS	.header
+		PrS	header
 
-		move	#$00,d1
+		; move	#$00,d1 ; XXX
+		.dc.w 0x323c,0
 		bsr	outAux
 * LIST -
 		not	d1
@@ -109,11 +100,9 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 		bsr	outAux
 
 
-		PrS	.promptUsr(pc)
+		PrS	promptUsr(pc)
 		WaitKey				; eat the key
 		
-.quit
-
 
 *** test is finished
 		clr	-(sp)			; Pterm0
@@ -123,30 +112,30 @@ myStart		move.l	4(sp),a0		; get pointer to basepage
 
 
 
-.TaTa		DC.B	$1b,"pTest EtherNEC hardware: data lines round trip",$1b,"q",13,10
+TaTa:		DC.B	$1b,"pTest EtherNEC hardware: data lines round trip",$1b,"q",13,10
 		DC.B	"(C)2002 Dr. Thomas Redelberger",13,10,0
 
-.promptUsr	DC.B	"hit any key to finish",13,10,0
+promptUsr:	DC.B	"hit any key to finish",13,10,0
 
-.header		DC.B	9,"written",9,"read",13,10,0
+header:		DC.B	9,"written",9,"read",13,10,0
 
 		EVEN
 
 
 ********************************************************************************	
 
-outAux
+outAux:
 		putBUSr	d1,0
-		PrS	.tabDollar
+		PrS	tabDollar
 		PrB	d1
-		PrS	.tabDollar
+		PrS	tabDollar
 		PrB	d0
-		PrS	.crlf
+		PrS	crlf
 		rts
 
-.tabDollar	DC.B	9,"$",0
+tabDollar:	DC.B	9,"$",0
 
-.crlf		DC.B	13,10,0
+crlf:		DC.B	13,10,0
 
 		EVEN
 
@@ -154,12 +143,10 @@ outAux
 
 *********************************************************************************
 
-		INCLUDE	UTI.S
+		.INCLUDE	"uti.s"
 
 
-		SECTION	BSS
-
-		DS.B	256		; my stack area
+		.BSS
 
 ******** end of HT4ENEC.S *******************************************************
 

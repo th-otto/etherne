@@ -35,6 +35,7 @@ extern int errno;
 #define ERANGE  34      /* range error                */
 #define ENMFILE 35      /* no more matching file      */
 
+#define sys_nerr 35
 
 #endif
 

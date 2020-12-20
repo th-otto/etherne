@@ -20,14 +20,14 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: busenec.i 1.3 2002/06/08 16:26:52 Thomas Exp Thomas $
-*
 
 *
 * manifest constants
 *
 
 BUGGY_HW	EQU	1		; if defined enables code to handle buggy hardware
+
+WORD_TRANSFER	EQU	0		; if set enables 16-bit DMA
 
 *
 * hardware addresses
@@ -40,83 +40,95 @@ rom3		EQU	$00fb0000	; ROM3 base address
 * macros
 *
 
-lockBUS		MACRO
+		MACRO lockBUS doNothing
 		moveq	#-1,d0			; preset error code
 		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
-		bne	.doNothing		; if somebody owns the bus we quit
+		bne	doNothing		; if somebody owns the bus we quit
 		ENDM
 
 
-lockBUSWait	MACRO
+		MACRO lockBUSWait.size
+		.LOCAL lt1
+		.LOCAL lc1
 * there should be a timeout based on _hz_200 (and then branch to .doNothing)
 
-.lt1\@		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
-		beq.b	.lc1\@			; if somebody owns the bus we *wait*
+lt1:		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
+		beq.b	lc1			; if somebody owns the bus we *wait*
 
-		bsr	_appl_yield		; wait
-		bra.b	.lt1\@
+		bsr.size	_appl_yield		; wait
+		bra.b	lt1
 
-.lc1\@						; proceed
+lc1:						; proceed
 		ENDM
 
 
-unlockBUS	MACRO
+		MACRO unlockBUS
 		sf	DVS+lcl_irqlock		; let other tasks access Cartridge Port
 		ENDM
 
 
-unlockBUSWait	MACRO
+		MACRO unlockBUSWait
 		sf	DVS+lcl_irqlock		; let other tasks access Cartridge Port
 		ENDM
 
 
-RxBUS		EQUR	d6
-RyBUS		EQUR	d7
-RcBUS		EQUR	a5
-RdBUS		EQUR	a6
+RxBUS		EQU	d6
+RyBUS		EQU	d7
+RcBUS		EQU	a5
+RdBUS		EQU	a6
 
 
-ldBUSRegs	MACRO				; for faster access to hardware
+		MACRO ldBUSRegs				; for faster access to hardware
 		lea	rom3,RcBUS
 		lea	rom4,RdBUS
 		ENDM
 
 
-putBUS		MACRO
-		move.w	#(\2)<<8,RyBUS		; move ISA address to bits 8-15
+		MACRO putBUS val,offset
+		move.w	#(offset)<<8,RyBUS		; move ISA address to bits 8-15
+		IFNE CPU020
+		move.b	val,RyBUS		; merge in data
+		DC.W	$4A35,$7200		; tst.b	0(RcBUS,RyBUS.w*2); machine code as Genst2 cannot do 68030
+		ELSE
 		move.w	RyBUS,RxBUS		; get a copy
-		move.b	\1,RyBUS		; merge in data
+		move.b	val,RyBUS		; merge in data
 		add.w	RyBUS,RyBUS		; shift up one bit to avoid UDS/LDS
 		tst.b	0(RcBUS,RyBUS.w)	; write by reading
+		ENDC
 		ENDM
 
 
-putMore		MACRO
+		MACRO putMore val,offset
+		IFNE CPU020
+		move.b	val,RyBUS		; merge in data
+		DC.W	$4A35,$7200		; 0(RcBUS,RyBUS.w*2); machine code as Genst2 cannot do 68030
+		ELSE
 		move.w	RxBUS,RyBUS		; move ISA address to bits 8-15
-		move.b	\1,RyBUS		; merge in data
+		move.b	val,RyBUS		; merge in data
 		add.w	RyBUS,RyBUS		; shift up one bit to avoid UDS/LDS
 		tst.b	0(RcBUS,RyBUS.w)	; write by reading
+		ENDC
 		ENDM
 
 
-putBUSi		MACRO
-		tst.b	((\2<<8)!(\1))<<1(RcBUS)	; write by reading
+		MACRO putBUSi val,offset
+		tst.b	((offset<<8)+(val))<<1(RcBUS)	; write by reading
 		ENDM
 
 
-getBUS		MACRO
-		move.b	(\1)<<9(RdBUS),\2	; read from CP
+		MACRO getBUS offset,val
+		move.b	(offset)<<9(RdBUS),val	; read from CP
 		ENDM
 
 
-getMore		MACRO
-		move.b	(\1)<<9(RdBUS),\2	; read from CP
+		MACRO getMore offset,val
+		move.b	(offset)<<9(RdBUS),val	; read from CP
 		ENDM
 
 *
 * macro to deselect an interface
 *
-deselBUS	MACRO
+		MACRO deselBUS
 * empty as the cartridge port does not need deselecting
 		ENDM
 
@@ -132,35 +144,40 @@ deselBUS	MACRO
 * both registers plus d0 get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 	
-RAM2NE		MACRO
-		ext.l	\2			; clear upper word
-		subq.w	#2,\2			; first two puts are outside loop
-		ble	.doNothing\@		; nothing to do?
-		putBUS	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
+		MACRO RAM2NE addr,count
+		.LOCAL Rt1
+		.LOCAL Rb1
+		.LOCAL Rt2
+		.LOCAL Rb2
+		.LOCAL doNothing_ram2ne
+		ext.l	count			; clear upper word
+		subq.w	#2,count			; first two puts are outside loop
+		ble.w	doNothing_ram2ne		; nothing to do? ; XXX
+		putBUS	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
 
 * put the packet; optimized for speed, we do 8 bytes at once
-		ror.l	#3,\2			; store remainder in upper word
-		bra.b	.Rb1\@
+		ror.l	#3,count			; store remainder in upper word
+		bra.b	Rb1
 
-.Rt1\@		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-		putMore	(\1)+,NE_DATAPORT
-.Rb1\@		dbra	\2,.Rt1\@
+Rt1:		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+		putMore	(addr)+,NE_DATAPORT
+Rb1:		dbra	count,Rt1
 
-		clr.w	\2			; prepare for remainder
-		rol.l	#3,\2			; restore remainder bits
-		bra.b	.Rb2\@
+		clr.w	count			; prepare for remainder
+		rol.l	#3,count			; restore remainder bits
+		bra.b	Rb2
 
-.Rt2\@		putMore	(\1)+,NE_DATAPORT	; put the remaining bytes
-.Rb2\@		dbra	\2,.Rt2\@
+Rt2:		putMore	(addr)+,NE_DATAPORT	; put the remaining bytes
+Rb2:		dbra	count,Rt2
 
-.doNothing\@
+doNothing_ram2ne:
 		ENDM
 
 
@@ -176,35 +193,40 @@ RAM2NE		MACRO
 * both registers plus d0 get destroyed.
 * Assembler inst. REPT does not work inside a macro, we repeate explicitly
 
-NE2RAM		MACRO
-		ext.l	\2			; clear upper word
-		ble.b	.doNothing\@		; nothing to do?
+		MACRO NE2RAM addr,count
+		.LOCAL Nt1
+		.LOCAL Nb1
+		.LOCAL Nt2
+		.LOCAL Nb2
+		.LOCAL doNothing_ne2ram
+		ext.l	count			; clear upper word
+		ble.b	doNothing_ne2ram	; nothing to do?
 
 * get the Packet; optimized for speed, we do 16 bytes at once.
-		ror.l	#4,\2			; store remainder in upper word
-		bra.b	.Nb1\@
+		ror.l	#4,count			; store remainder in upper word
+		bra.b	Nb1
 
-.Nt1\@		movep.l	NE_DATAPORT<<9(RdBUS),d0	; four bytes at once
-		move.l	d0,(\1)+
+Nt1:		movep.l	NE_DATAPORT<<9(RdBUS),d0	; four bytes at once
+		move.l	d0,(addr)+
 		movep.l	NE_DATAPORT<<9(RdBUS),d0
-		move.l	d0,(\1)+
+		move.l	d0,(addr)+
 		movep.l	NE_DATAPORT<<9(RdBUS),d0	; four bytes at once
-		move.l	d0,(\1)+
+		move.l	d0,(addr)+
 		movep.l	NE_DATAPORT<<9(RdBUS),d0
-		move.l	d0,(\1)+
-.Nb1\@		dbra	\2,.Nt1\@
+		move.l	d0,(addr)+
+Nb1:		dbra	count,Nt1
 
-		clr.w	\2				; prepare for remainder
+		clr.w	count				; prepare for remainder
 * rol.l #3 instead of #4 because we write a WORD at once not a byte
 * thus the lowest significant bit (which shall be 0 anyway) is not used
-		rol.l	#3,\2				; restore remainder bits
-		bra.b	.Nb2\@
+		rol.l	#3,count				; restore remainder bits
+		bra.b	Nb2
 
-.Nt2\@		movep.w	NE_DATAPORT<<9(RdBUS),d0
-		move.w	d0,(\1)+
-.Nb2\@		dbra	\2,.Nt2\@
+Nt2:		movep.w	NE_DATAPORT<<9(RdBUS),d0
+		move.w	d0,(addr)+
+Nb2:		dbra	count,Nt2
 
-.doNothing\@
+doNothing_ne2ram:
 		ENDM
 
 

@@ -8,19 +8,22 @@
 #$Id: makefile 1.3 2002/06/08 16:38:20 Thomas Exp Thomas $
 #
 
-#### Turbo C 2.0
+#### Pure-C 1.1
 CC=bin\tcc.ttp
-CFLAGS=-Iinclude -Iinc_stng -Iinc_mnet
+CFLAGS=-Iinclude
 
-LINK=bin\tlink.ttp
+LINK=bin\plink.ttp
 LFLAGS=
 LIBDIR=lib
 
 #### DEVPAC 2.0
 #AS=bin\genst2.ttp
 #### DEVPAC 3.10
-AS=bin\gen.ttp
-AFLAGS=-L2
+#AS=bin\gen.ttp
+#AFLAGS=-L2
+### PASM
+AS=bin\pasm.ttp
+AFLAGS=-S
 
 #### Mupfel
 RM=rm -f
@@ -54,11 +57,12 @@ etherne.mif:	$(OBJS_MNET)
 
 
 ht1ene.tos:	ht1ene.s uti.i bus.i 8390.i uti.s
-	$(AS)	ht1ene.s -o$@
-
+	$(AS)	$< -oht1ene.o
+	$(LINK) $(LFLAGS) -s=0 -o=$@ ht1ene.o
 
 ht2ene.tos:	ht2ene.s uti.i bus.i uti.s
-	$(AS)	ht2ene.s -o$@
+	$(AS)	$< -oht2ene.o
+	$(LINK) $(LFLAGS) -s=0 -o=$@ ht2ene.o
 
 
 ht3ene.tos:	$(OBJS_HT3)
@@ -66,7 +70,8 @@ ht3ene.tos:	$(OBJS_HT3)
 
 
 ht4enec.tos:	ht4enec.s uti.i busenec.i uti.s
-	$(AS)	ht4enec.s -o$@
+	$(AS)	$< -oht4enec.o
+	$(LINK) $(LFLAGS) -s=0 -o=$@ ht4enec.o
 
 
 enemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i uti.i
@@ -101,62 +106,62 @@ all:	eneaf eneas enec enec3 enem eneh enex
 eneaf:
 	$(CP)	buseneaf.i bus.i	# replace the bus hardware specific include file
 	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
-	$(MV)	etherne.mif ..\eneaf.mif	# save these drivers
-	$(MV)	etherne.stx ..\eneaf.stx
-	$(MV)	ht1ene.tos ..\ht1eneaf.tos
-	$(MV)	ht2ene.tos ..\ht2eneaf.tos
-	$(MV)	ht3ene.tos ..\ht3eneaf.tos
+	$(MV)	etherne.mif ..\bin\eneaf.mif	# save these drivers
+	$(MV)	etherne.stx ..\bin\eneaf.stx
+	$(MV)	ht1ene.tos ..\bin\ht1eneaf.tos
+	$(MV)	ht2ene.tos ..\bin\ht2eneaf.tos
+	$(MV)	ht3ene.tos ..\bin\ht3eneaf.tos
 
 
 eneas:
 	$(CP)	buseneas.i bus.i
 	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
-	$(MV)	etherne.mif ..\eneas.mif
-	$(MV)	etherne.stx ..\eneas.stx
-	$(MV)	ht1ene.tos ..\ht1eneas.tos
-	$(MV)	ht2ene.tos ..\ht2eneas.tos
-	$(MV)	ht3ene.tos ..\ht3eneas.tos
+	$(MV)	etherne.mif ..\bin\eneas.mif
+	$(MV)	etherne.stx ..\bin\eneas.stx
+	$(MV)	ht1ene.tos ..\bin\ht1eneas.tos
+	$(MV)	ht2ene.tos ..\bin\ht2eneas.tos
+	$(MV)	ht3ene.tos ..\bin\ht3eneas.tos
 
 
 enec:
 	$(CP)	busenec.i bus.i
 	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos ht4enec.tos
-	$(MV)	etherne.mif ..\enec.mif
-	$(MV)	etherne.stx ..\enec.stx
-	$(MV)	ht1ene.tos ..\ht1enec.tos
-	$(MV)	ht2ene.tos ..\ht2enec.tos
-	$(MV)	ht3ene.tos ..\ht3enec.tos
-	$(MV)	ht4enec.tos ..\ht4enec.tos
+	$(MV)	etherne.mif ..\bin\enec.mif
+	$(MV)	etherne.stx ..\bin\enec.stx
+	$(MV)	ht1ene.tos ..\bin\ht1enec.tos
+	$(MV)	ht2ene.tos ..\bin\ht2enec.tos
+	$(MV)	ht3ene.tos ..\bin\ht3enec.tos
+	$(MV)	ht4enec.tos ..\bin\ht4enec.tos
 
 
 enec3:
 	$(CP)	busenec3.i bus.i
 	$(MAKE)	drivers
-	$(MV)	etherne.mif ..\enec3.mif
-	$(MV)	etherne.stx ..\enec3.stx
+	$(MV)	etherne.mif ..\bin\enec3.mif
+	$(MV)	etherne.stx ..\bin\enec3.stx
 
 
 enem:
 	$(CP)	busenem.i bus.i
 	$(MAKE)	drivers ht2ene.tos
-	$(MV)	etherne.mif ..\enem.mif
-	$(MV)	etherne.stx ..\enem.stx
-	$(MV)	ht2ene.tos ..\ht2enem.tos
+	$(MV)	etherne.mif ..\bin\enem.mif
+	$(MV)	etherne.stx ..\bin\enem.stx
+	$(MV)	ht2ene.tos ..\bin\ht2enem.tos
 
 
 eneh:
 	$(CP)	buseneh.i bus.i
 	$(MAKE)	drivers ht2ene.tos
-	$(MV)	etherne.mif ..\eneh.mif
-	$(MV)	etherne.stx ..\eneh.stx
-	$(MV)	ht2ene.tos ..\ht2eneh.tos
+	$(MV)	etherne.mif ..\bin\eneh.mif
+	$(MV)	etherne.stx ..\bin\eneh.stx
+	$(MV)	ht2ene.tos ..\bin\ht2eneh.tos
 
 enex:
 	$(CP)	busenex.i bus.i
 	$(MAKE)	drivers ht2ene.tos
-	$(MV)	etherne.mif ..\enex.mif
-	$(MV)	etherne.stx ..\enex.stx
-	$(MV)	ht2ene.tos ..\ht2enex.tos
+	$(MV)	etherne.mif ..\bin\enex.mif
+	$(MV)	etherne.stx ..\bin\enex.stx
+	$(MV)	ht2ene.tos ..\bin\ht2enex.tos
 
 # development driver
 

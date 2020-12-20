@@ -402,9 +402,9 @@ rtrvPckt
 
 	IFD	BUGGY_HW
 * note that the data is shifted by one byte in case of a junk header, we need to do one more read
-	tst.b	RrxJnk8990
-	beq.b	.c1
-	getBUS	NE_DATAPORT,d0			; dummy read
+		tst.b	RrxJnk8990
+		beq.b	.c1
+		getBUS	NE_DATAPORT,d0			; dummy read
 
 .c1
 	ENDC

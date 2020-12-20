@@ -25,8 +25,7 @@ AFLAGS=-L2
 #### Mupfel
 RM=rm -f
 CP=cp
-#MV=mv
-MV=cp
+MV=mv
 MAKE=make
 ZIP=stzip
 ECHO=echo

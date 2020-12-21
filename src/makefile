@@ -97,7 +97,7 @@ package:
 	cd ..; $(ZIP) -ar etherne.zip "*.* ~*.o ~*.ppt"
 
 
-all:	eneaf eneas enec enec3 enem eneh enex
+all:	eneaf eneas enec enec3 enem eneh enep2 enex
 
 
 #################################################################
@@ -162,6 +162,16 @@ eneh:
 	$(MV)	etherne.stx ..\bin\eneh.stx
 	$(MV)	ht2ene.tos ..\bin\ht2eneh.tos
 
+
+enep2:
+	$(CP)	busenep2.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
+	$(MAKE)	drivers ht2ene.tos
+	$(MV)	etherne.mif ..\bin\enep2.mif
+	$(MV)	etherne.stx ..\bin\enep2.stx
+	$(MV)	ht2ene.tos ..\bin\ht2enep2.tos
+
+
 enex:
 	$(CP)	busenex.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
@@ -169,6 +179,7 @@ enex:
 	$(MV)	etherne.mif ..\bin\enex.mif
 	$(MV)	etherne.stx ..\bin\enex.stx
 	$(MV)	ht2ene.tos ..\bin\ht2enex.tos
+
 
 # development driver
 

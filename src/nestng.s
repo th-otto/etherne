@@ -316,7 +316,7 @@ err3_dgram:
 
 err4_dgram:
 		moveq	#-5,d3			; rc=Error: cannot allocate IP pkt data block
-		move.l	sgOptions,d0		; have options been present?
+		move.l	sgOptions(a2),d0		; have options been present?
 		beq.b	freeIPh_dgram		; no, go free IP header
 		move.l	d0,-(a7)		; arg: free options again
 		movea.l	tpKRfree(a3),a0

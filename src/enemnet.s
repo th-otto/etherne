@@ -20,7 +20,6 @@
 *									*
 * Tab size 8, developed with DEVPAC ST 2.0				*
 *************************************************************************
-* $Id: enemnet.s 1.3 2002/06/08 16:12:22 Thomas Exp Thomas $
 
 *
 * development switches
@@ -41,6 +40,8 @@ USEKERNEL	EQU	0		; we do not need to access the KERNEL via a pointer
 	ENDC
 		XDEF	if_ENE				; structure for interface en0
 		XDEF	netinfo				; pointer to structure of MNet functions
+
+		XREF version_str
 
 * references from NE.S
 		XREF	ei_probe1			; (void);
@@ -113,7 +114,7 @@ c1_init:
 		If_getfreeunit	if_name(RinNif)
 	
 		move	d0,if_unit(RinNif)		; store unit
-		lea	mess2_init(pc),a0
+		lea	mess3_init(pc),a0
 		add.b	d0,(a0)				; update interface name in message
 
 		lea	DVS+dev_dev_addr,a0		; copy MAC ei_probe1 got...
@@ -135,6 +136,8 @@ c1_init:
 
 c2_init:
 		PrS	mess1_init(pc)			; print message
+		PrS version_str(pc)
+		PrS	mess2_init(pc)
 		lea	if_hwlocalAddr(RinNif),a0	; MAC
 		moveq	#5,d3
 
@@ -153,11 +156,17 @@ quit_init:
 		rts
 
 mess1_init:
-		DC.B	' EtherNE driver '
-		VersionStr
+		DC.B	' EtherNE driver v',0
+		/* version_str is inserted here */
+mess2_init:
+		IFNE (RXDEBPRT+TXDEBPRT+MACAddDEBPRT)
+		DC.B    ' dev'
+		ELSE
+		DC.B    ' prd'
+		ENDC
 		DC.B	' (C) 2002 Dr. Thomas Redelberger',13,10
 		DC.B	'Device (en'
-mess2_init:
+mess3_init:
 		DC.B	'0) MAC: ',0
 
 bscrlf:		DC.B	8,32

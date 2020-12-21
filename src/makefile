@@ -34,8 +34,8 @@ ZIP=stzip
 ECHO=echo
 
 
-OBJS_STNG = startup.o enestng.o nestng.o ne.o uti.o
-OBJS_MNET = enemnet.o nemnet.o ne.o uti.o
+OBJS_STNG = startup.o enestng.o nestng.o ne.o uti.o version.o
+OBJS_MNET = enemnet.o nemnet.o ne.o uti.o version.o
 OBJS_HT3  = ht3ene.o ne.o uti.o
 OBJS = $(OBJS_STNG) $(OBJS_MNET) $(OBJS_HT3)
 
@@ -73,7 +73,7 @@ ht4ene.tos:	ht4ene.o uti.i bus.i uti.s
 
 enemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i uti.i
 
-enestng.o:	$(INC_STNG)\transprt.h $(INC_STNG)\port.h ne.h uti.h devswit.h
+enestng.o:	$(INC_STNG)\transprt.h $(INC_STNG)\port.h ne.h uti.h version.h
 
 nestng.o nemnet.o ne.o:	devswit.i uti.i bus.i 8390.i
 

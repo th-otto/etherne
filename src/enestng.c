@@ -16,9 +16,6 @@
 /*																		*/
 /* Tab size 4, developed with Turbo-C ST 2.0							*/
 /************************************************************************/
-/*
-$Id: enestng.c 1.3 2002/06/08 16:07:50 Thomas Exp Thomas $
- */
 
 #define	NULL ((void*) 0L)
 #include <tos.h>
@@ -28,7 +25,7 @@ $Id: enestng.c 1.3 2002/06/08 16:07:50 Thomas Exp Thomas $
 
 #include "ne.h"
 #include "uti.h"
-#include "devswit.h"
+#include "version.h"
 
 
 #define	hz200		(*(unsigned long*) 0x4BAL)
@@ -559,7 +556,7 @@ static DRIVER my_driver = {
 	my_send,
 	my_receive,
 	"EtherNet",
-	VersionStr(MajVersion,MinVersion),
+	version_str,
 	((M_YEAR-1980) << 9) | (M_MONTH << 5) | M_DAY,
 	"Dr. Thomas Redelberger",
 	NULL, NULL

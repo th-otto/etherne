@@ -11,8 +11,7 @@
 *										*
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *********************************************************************************
-* $Id: netdev.i 1.1 2002/03/24 13:53:06 Thomas Exp Thomas $
-*
+
 		OFFSET	0
 * this is only a small subset of struct dev from linux' netdevice.h
 

@@ -11,8 +11,6 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: ht2ene.s 1.1 2002/04/16 21:24:54 Thomas Exp Thomas $
-*
 
 		.INCLUDE	"uti.i"
 

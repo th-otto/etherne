@@ -12,8 +12,6 @@
 /*																		*/
 /************************************************************************/
 /*
-$Id: devswit.h 1.1 2002/06/08 16:08:36 Thomas Exp Thomas $
-*/
 
 /* development switches */
 
@@ -21,10 +19,8 @@ $Id: devswit.h 1.1 2002/06/08 16:08:36 Thomas Exp Thomas $
 #define	MajVersion	1
 #define	MinVersion	15
 
-#define	VersionStr(a,b)	"0" #a "." #b
-
 #define	M_YEAR		2004
 #define	M_MONTH		4
 #define	M_DAY		17
 
-
+extern char const version_str[];

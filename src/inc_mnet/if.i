@@ -11,8 +11,6 @@
 *										*
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *********************************************************************************
-* $Id: if.i 1.1 2002/03/24 14:06:12 Thomas Exp Thomas $
-*
 
 IF_NAMSIZ		EQU	16			; maximum if name len
 IF_MAXQ			EQU	60			; maximum if queue len

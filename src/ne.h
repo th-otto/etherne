@@ -15,9 +15,6 @@
 /* Tabsize 4, developed with Turbo-C ST 2.0								*/
 /*																		*/
 /************************************************************************/
-/*
-$Id: ne.h 1.3 2002/06/08 16:08:36 Thomas Exp Thomas $
- */
 
 
 /**** entry points in NE.S ****/

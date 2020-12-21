@@ -17,7 +17,6 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: nemnet.s 1.3 2002/06/08 16:12:22 Thomas Exp Thomas $
 *
 * descriptions:
 *

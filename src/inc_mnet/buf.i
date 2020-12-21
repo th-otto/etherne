@@ -11,8 +11,6 @@
 *										*
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *********************************************************************************
-* $Id: buf.i 1.1 2002/03/24 14:06:12 Thomas Exp Thomas $
-*
 
 
 * we just have a subset here relevant for a driver

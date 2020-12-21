@@ -12,5 +12,6 @@ enestng.c
 nestng.s
 ne.s
 uti.s
+version.c
 
 lib\pctoslib.lib

@@ -8,8 +8,6 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: uti.i 1.2 2002/06/08 16:26:52 Thomas Exp Thomas $
-*
 
 *
 * external references

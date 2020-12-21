@@ -11,5 +11,6 @@ enemnet.s
 nemnet.s
 ne.s
 uti.s
+version.c
 
 lib\pctoslib.lib

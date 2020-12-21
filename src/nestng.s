@@ -22,7 +22,6 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: nestng.s 1.2 2002/06/08 16:12:22 Thomas Exp Thomas $
 *
 * descriptions:
 *

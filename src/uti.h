@@ -10,9 +10,6 @@
 /* Tabsize 4, developed with Turbo-C ST 2.0								*/
 /*																		*/
 /************************************************************************/
-/*
-$Id: uti.h 1.1 2002/03/24 13:46:52 Thomas Exp Thomas $
- */
 
 #define myPling()	prntStr("\7")
 

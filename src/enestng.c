@@ -81,27 +81,24 @@ typedef  struct arp_pkt {
 
 
 
+/*
+ *	ARP cache entry.
+ */
 
-/**** forward declarations ****/
+typedef  struct arp_entry {
+	uint32	ip_addr;			/* IP address */
+	uint8	ether[6];			/* EtherNet station address */
+	uint16	used;				/* flag to signal in use */
+ } ARP_ENTRY;
 
-static void  cdecl	my_send (PORT *port);
-static void  cdecl	my_receive (PORT *port);
-static int16 cdecl	my_set_state (PORT *port, int16 state);
-static int16 cdecl	my_cntrl (PORT *port, uint32 argument, int16 code);
 
-static int			strcmp(const char* s, const char* t);		/* we do without stdlib */
-static long			get_sting_cookie (void);
-static void			install (BASPAG *);
+#define	ARP_NUM		32			/* # of ARP cache entries */
 
-static void			deplete_queue (IP_DGRAM **queue);
+int			arpNentries = ARP_NUM;	/* not static because linker must know it */
+int			filler = 0;				/* force next 3 vars. to DATA segment ...*/
+static ARP_ENTRY*	arpRecnt = NULL;
+static ARP_ENTRY	arpEntries[ARP_NUM] = {0L};	/* .. to have them adjacent */
 
-extern int			arpNentries;					/* linker to fill in myTable */
-
-/* interface to Ethernet address caching */
-
-static void			arp_init	(void);
-static uint8*		arp_cache	(uint32 ip_addr);
-static void			arp_enter	(uint32 ip_addr, uint8 ether[6]);
 
 
 /**** start definitions ****/
@@ -121,13 +118,21 @@ struct {
 TPL		*tpl;
 STX		*stx;
 PORT	my_port   = {
-	"EtherNet", L_SER_BUS, FALSE, 0L, 0xffffffffUL, 0xffffffffUL,
-	1500, 1500, 0L, NULL, 0L, NULL, 0, NULL, NULL
-};
-static DRIVER	my_driver = {
-	my_set_state, my_cntrl, my_send, my_receive, "EtherNet", VersionStr(MajVersion,MinVersion),
-	((M_YEAR-1980) << 9) | (M_MONTH << 5) | M_DAY, "Dr. Thomas Redelberger",
-	NULL, NULL
+	"EtherNet",    /* name */
+	L_SER_BUS,     /* link type */
+	FALSE,         /* active */
+	0,             /* flags */
+	0xffffffffUL,  /* ip_addr */
+	0xffffffffUL,  /* sub_mask */
+	1500,          /* mtu */
+	1500,          /* max_mtu */
+	0,             /* stat_sd_data */
+	NULL,          /* send */
+	0,             /* stat_rcv_data */
+	NULL,          /* receive */
+	0,             /* stat_dropped */
+	NULL,          /* driver */
+	NULL           /* next */
 };
 
 /*
@@ -188,92 +193,52 @@ static struct {
 
 
 
+/******** functions only to do with arp caching *********************/
+/* too small to warrant a separate module							*/
+/********************************************************************/
 
-/* Note that this program does NOT use the standard startup code
- * The function main below MUST be the first one in the text segment
- */
-
-void cdecl main (BASPAG *bp)
+static void  arp_init (void)
 {
-	static char	fault[] = "ENE??.STX: STinG extension module. To be started by STinG!\r\n";
-	DRV_LIST *sting_drivers;
-	/* calculate size of TPA */
-	long PgmSize = (long) bp->p_bbase + bp->p_blen - (long) bp;
+	ARP_ENTRY  *walk;
+	int i;
 
-
-	/* CR in cmdline to '\0' */
-	bp->p_cmdlin[1+bp->p_cmdlin[0]] = '\0';
-
-	if (strcmp (bp->p_cmdlin+1, "STinG_Load") != 0) {
-		prntStr (fault);
-		goto errExit;
+/* clear ARP cache */
+	for (i = ARP_NUM, walk=arpEntries; --i>=0; walk++) {
+		walk->ip_addr = 0;
+		memse6(walk->ether, 0, 6);
+		walk->used = 0;
 	}
 
-	/* look for NE hardware */
+	arpRecnt = arpEntries;
+}
 
-	if ( Supexec(ei_probe1) != 0 )
-		goto errExit;
 
-	if ( (sting_drivers = (DRV_LIST*) Supexec(get_sting_cookie)) == NULL )
-		goto errExit;
+static uint8* arp_cache (uint32 ip_addr)
+{
+	ARP_ENTRY  *walk;
+	int i;
 
-	if (strcmp (sting_drivers->magic, MAGIC) != 0)
-		goto errExit;
+	/* go over all entries, start from recent entry */
+	for (i = ARP_NUM, walk=arpRecnt; --i>=0; ) {
+		if (walk->used && walk->ip_addr == ip_addr) {
+			arpRecnt = walk;					/* likely we need that next time again */
+			return walk->ether;
+		}	
 
-	tpl = (TPL *) (*sting_drivers->get_dftab) (TRANSPORT_DRIVER);
-	stx = (STX *) (*sting_drivers->get_dftab) (MODULE_DRIVER);
-	
-	if (tpl != NULL && stx != NULL) {
-		install(bp);
-		Ptermres (PgmSize, 0);
+		if (--walk < arpEntries) walk = arpEntries+ARP_NUM-1;		/* wrap around */
 	}
 
-errExit:
-	Pterm(-1);
+	return NULL;
 }
 
 
-static int strcmp(const char* s, const char* t)
+static void  arp_enter (uint32 ip_addr, uint8 ether_addr[6])
 {
-	for ( ; *s == *t; s++, t++)
-		if (*s == '\0') return 0;
+	if (++arpRecnt >= arpEntries+ARP_NUM) arpRecnt = arpEntries;		/* wrap around */
 
-	return *s - *t;
-}
-
-
-static long get_sting_cookie (void)
-{
-	long  *p;
-
-	for (p = * (long **) 0x5a0L; *p ; p += 2)
-	if (*p == 'STiK')
-		return *++p;
-
-	return 0L;
-}
-
-
-
-static void install(BASPAG *BasPag)
-{
-	PORT    *ports;
-	DRIVER  *driver;
-	
-	query_chains ((void **) & ports, (void **) & driver, NULL);
-	
-	(my_port.driver = & my_driver)->basepage = BasPag;
-	
-	while (ports->next)
-		ports = ports->next;
-	
-	ports->next = & my_port;
-	
-	while (driver->next)
-		driver = driver->next;
-	
-	driver->next = & my_driver;
-
+	arpRecnt->ip_addr = ip_addr;
+	memcp6 (arpRecnt->ether, ether_addr, 6);
+	arpRecnt->used = 1;
 }
 
 
@@ -447,6 +412,19 @@ static void cdecl my_receive (PORT  *port)
 }
 
 
+static void  deplete_queue (IP_DGRAM  **queue)
+{
+   IP_DGRAM  *walk, *next;
+
+   for (walk = *queue; walk; walk = next) {
+        next = walk->next;
+        IP_discard (walk, TRUE);
+      }
+
+   *queue = NULL;
+ }
+
+
 static int16 cdecl my_set_state (PORT *port, int16 state)
 {
 	if (port != &my_port) return FALSE;
@@ -472,10 +450,6 @@ static int16 cdecl my_set_state (PORT *port, int16 state)
 	return TRUE;
 }
 
-
-/* need to communicate with Ronald */
-#define	CTL_ETHER_GET_STAT	(('E' << 8) | 'S')   /* Ethernet, statistics */
-#define	CTL_ETHER_GET_ARP	(('E' << 8) | 'A')   /* Ethernet, ARP */
 
 
 
@@ -578,89 +552,108 @@ long  process_arp (ARP * arp, int16 length)
 
 
 
-static void  deplete_queue (queue)
 
-IP_DGRAM  **queue;
+static DRIVER my_driver = {
+	my_set_state,
+	my_cntrl,
+	my_send,
+	my_receive,
+	"EtherNet",
+	VersionStr(MajVersion,MinVersion),
+	((M_YEAR-1980) << 9) | (M_MONTH << 5) | M_DAY,
+	"Dr. Thomas Redelberger",
+	NULL, NULL
+};
 
+
+
+
+/**** main ****/
+
+static int strcmp(const char* s, const char* t)
 {
-   IP_DGRAM  *walk, *next;
+	for ( ; *s == *t; s++, t++)
+		if (*s == '\0') return 0;
 
-   for (walk = *queue; walk; walk = next) {
-        next = walk->next;
-        IP_discard (walk, TRUE);
-      }
-
-   *queue = NULL;
- }
+	return *s - *t;
+}
 
 
+static long get_sting_cookie (void)
+{
+	long  *p;
 
-/******** functions only to do with arp caching *********************/
-/* too small to warrant a separate module							*/
-/********************************************************************/
+	for (p = * (long **) 0x5a0L; *p ; p += 2)
+	if (*p == 'STiK')
+		return *++p;
 
-/*
- *	ARP cache entry.
+	return 0L;
+}
+
+static void install(BASPAG *BasPag)
+{
+	PORT    *ports;
+	DRIVER  *driver;
+	
+	query_chains ((void **) & ports, (void **) & driver, NULL);
+	
+	(my_port.driver = & my_driver)->basepage = BasPag;
+	
+	while (ports->next)
+		ports = ports->next;
+	
+	ports->next = & my_port;
+	
+	while (driver->next)
+		driver = driver->next;
+	
+	driver->next = & my_driver;
+
+}
+
+
+/* Note that this program does NOT use the standard startup code
  */
 
-typedef  struct arp_entry {
-	uint32	ip_addr;			/* IP address */
-	uint8	ether[6];			/* EtherNet station address */
-	uint16	used;				/* flag to signal in use */
- } ARP_ENTRY;
-
-
-#define	ARP_NUM		32			/* # of ARP cache entries */
-
-       int			arpNentries = ARP_NUM;	/* not static because linker must know it */
-int			filler = 0;				/* force next 3 vars. to DATA segment ...*/
-static ARP_ENTRY*	arpRecnt = NULL;
-static ARP_ENTRY	arpEntries[ARP_NUM] = {0L};	/* .. to have them adjacent */
-
-
-
-static void  arp_init ()
+void cdecl main (BASPAG *bp)
 {
-	ARP_ENTRY  *walk;
-	int i;
+	static char	fault[] = "ENE??.STX: STinG extension module. To be started by STinG!\r\n";
+	DRV_LIST *sting_drivers;
+	/* calculate size of TPA */
+	long PgmSize = (long) bp->p_bbase + bp->p_blen - (long) bp;
 
-/* clear ARP cache */
-	for (i = ARP_NUM, walk=arpEntries; --i>=0; walk++) {
-		walk->ip_addr = 0;
-		memse6(walk->ether, 0, 6);
-		walk->used = 0;
+
+	/* CR in cmdline to '\0' */
+	bp->p_cmdlin[1+bp->p_cmdlin[0]] = '\0';
+
+	if (strcmp (bp->p_cmdlin+1, "STinG_Load") != 0) {
+		prntStr (fault);
+		goto errExit;
 	}
 
-	arpRecnt = arpEntries;
-}
+	/* look for NE hardware */
 
+	if ( Supexec(ei_probe1) != 0 )
+		goto errExit;
 
-static uint8* arp_cache (uint32 ip_addr)
-{
-	ARP_ENTRY  *walk;
-	int i;
+	if ( (sting_drivers = (DRV_LIST*) Supexec(get_sting_cookie)) == NULL )
+		goto errExit;
 
-	/* go over all entries, start from recent entry */
-	for (i = ARP_NUM, walk=arpRecnt; --i>=0; ) {
-		if (walk->used && walk->ip_addr == ip_addr) {
-			arpRecnt = walk;					/* likely we need that next time again */
-			return walk->ether;
-		}	
+	if (strcmp (sting_drivers->magic, MAGIC) != 0)
+		goto errExit;
 
-		if (--walk < arpEntries) walk = arpEntries+ARP_NUM-1;		/* wrap around */
+	tpl = (TPL *) (*sting_drivers->get_dftab) (TRANSPORT_DRIVER);
+	stx = (STX *) (*sting_drivers->get_dftab) (MODULE_DRIVER);
+	
+	if (tpl != NULL && stx != NULL) {
+		install(bp);
+		Ptermres (PgmSize, 0);
 	}
 
-	return NULL;
+errExit:
+	Pterm(-1);
 }
 
 
-static void  arp_enter (uint32 ip_addr, uint8 ether_addr[6])
-{
-	if (++arpRecnt >= arpEntries+ARP_NUM) arpRecnt = arpEntries;		/* wrap around */
-
-	arpRecnt->ip_addr = ip_addr;
-	memcp6 (arpRecnt->ether, ether_addr, 6);
-	arpRecnt->used = 1;
-}
 
 /**** end of ethernea.c ****/

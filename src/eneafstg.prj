@@ -1,6 +1,11 @@
 ..\bin\eneaf.stx
-.C[-Iinclude]
+.S[-DBUS=0]
+.S[-DACSI_SLOW_ACCESS=0]
+.S[-S]
 .C[-P-]
+.C[-K-]
+.C[-M-]
+.C[-G-]
 .L[-S=0]
 =
 startup.s
@@ -10,4 +15,3 @@ ne.s
 uti.s
 
 lib\pctoslib.lib
-

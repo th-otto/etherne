@@ -34,7 +34,7 @@ ZIP=stzip
 ECHO=echo
 
 
-OBJS_STNG = enestng.o nestng.o ne.o uti.o
+OBJS_STNG = startup.o enestng.o nestng.o ne.o uti.o
 OBJS_MNET = enemnet.o nemnet.o ne.o uti.o
 OBJS_HT3  = ht3ene.o ne.o uti.o
 OBJS = $(OBJS_STNG) $(OBJS_MNET) $(OBJS_HT3)

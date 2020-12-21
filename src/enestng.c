@@ -613,7 +613,7 @@ typedef  struct arp_entry {
 #define	ARP_NUM		32			/* # of ARP cache entries */
 
        int			arpNentries = ARP_NUM;	/* not static because linker must know it */
-static int			filler = 0;				/* force next 3 vars. to DATA segment ...*/
+int			filler = 0;				/* force next 3 vars. to DATA segment ...*/
 static ARP_ENTRY*	arpRecnt = NULL;
 static ARP_ENTRY	arpEntries[ARP_NUM] = {0L};	/* .. to have them adjacent */
 

@@ -1,5 +1,10 @@
 ..\bin\eneh.mif
+.S[-DBUS=3]
 .S[-S]
+.C[-P-]
+.C[-K-]
+.C[-M-]
+.C[-G-]
 .L[-S=0]
 =
 enemnet.s
@@ -7,4 +12,4 @@ nemnet.s
 ne.s
 uti.s
 
-pctoslib.lib
+lib\pctoslib.lib

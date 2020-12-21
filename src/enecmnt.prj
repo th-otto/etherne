@@ -1,4 +1,4 @@
-..\bin\enec.stx
+..\bin\enec.mif
 .S[-DBUS=1]
 .S[-DCPU020=0]
 .S[-S]
@@ -8,9 +8,8 @@
 .C[-G-]
 .L[-S=0]
 =
-startup.s
-enestng.c
-nestng.s
+enemnet.s
+nemnet.s
 ne.s
 uti.s
 

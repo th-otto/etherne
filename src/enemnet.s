@@ -582,7 +582,7 @@ ENE_ioctl:
 		cmp	#SIOCSIFMTU,d0
 		bne.b	c1_ioctl
 
-* Limit MTU to 1500 bytes. MintNet has alraedy set nif->mtu to the new value,
+* Limit MTU to 1500 bytes. MintNet has already set nif->mtu to the new value,
 * we only limit it here.
 		moveq.l	#0,d1			; unsigned extend
 		move	#ETH_MAX_DLEN,d1

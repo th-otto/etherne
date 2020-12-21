@@ -1,6 +1,5 @@
-..\bin\enec.stx
-.S[-DBUS=1]
-.S[-DCPU020=0]
+..\bin\enex.stx
+.S[-DBUS=7]
 .S[-S]
 .C[-P-]
 .C[-K-]

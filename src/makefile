@@ -58,20 +58,20 @@ etherne.mif:	$(OBJS_MNET)
 
 ht1ene.tos:	ht1ene.s uti.i bus.i 8390.i uti.s
 	$(AS)	$< -oht1ene.o
-	$(LINK) $(LFLAGS) -s=0 -o=$@ ht1ene.o
+	$(LINK) $(LFLAGS) -s=256 -o=$@ ht1ene.o
 
 ht2ene.tos:	ht2ene.s uti.i bus.i uti.s
 	$(AS)	$< -oht2ene.o
-	$(LINK) $(LFLAGS) -s=0 -o=$@ ht2ene.o
+	$(LINK) $(LFLAGS) -s=256 -o=$@ ht2ene.o
 
 
 ht3ene.tos:	$(OBJS_HT3)
 	$(LINK) $(LFLAGS) -s=256 -o=$@ $(OBJS_HT3)
 
 
-ht4enec.tos:	ht4enec.s uti.i busenec.i uti.s
-	$(AS)	$< -oht4enec.o
-	$(LINK) $(LFLAGS) -s=0 -o=$@ ht4enec.o
+ht4ene.tos:	ht4enec.s uti.i busenec0.i uti.s
+	$(AS)	$< -oht4ene.o
+	$(LINK) $(LFLAGS) -s=256 -o=$@ ht4ene.o
 
 
 enemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i uti.i
@@ -105,6 +105,7 @@ all:	eneaf eneas enec enec3 enem eneh enex
 
 eneaf:
 	$(CP)	buseneaf.i bus.i	# replace the bus hardware specific include file
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
 	$(MV)	etherne.mif ..\bin\eneaf.mif	# save these drivers
 	$(MV)	etherne.stx ..\bin\eneaf.stx
@@ -115,6 +116,7 @@ eneaf:
 
 eneas:
 	$(CP)	buseneas.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
 	$(MV)	etherne.mif ..\bin\eneas.mif
 	$(MV)	etherne.stx ..\bin\eneas.stx
@@ -124,18 +126,20 @@ eneas:
 
 
 enec:
-	$(CP)	busenec.i bus.i
-	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos ht4enec.tos
+	$(CP)	busenec0.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
+	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos ht4ene.tos
 	$(MV)	etherne.mif ..\bin\enec.mif
 	$(MV)	etherne.stx ..\bin\enec.stx
 	$(MV)	ht1ene.tos ..\bin\ht1enec.tos
 	$(MV)	ht2ene.tos ..\bin\ht2enec.tos
 	$(MV)	ht3ene.tos ..\bin\ht3enec.tos
-	$(MV)	ht4enec.tos ..\bin\ht4enec.tos
+	$(MV)	ht4ene.tos ..\bin\ht4enec.tos
 
 
 enec3:
 	$(CP)	busenec3.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers
 	$(MV)	etherne.mif ..\bin\enec3.mif
 	$(MV)	etherne.stx ..\bin\enec3.stx
@@ -143,6 +147,7 @@ enec3:
 
 enem:
 	$(CP)	busenem.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\enem.mif
 	$(MV)	etherne.stx ..\bin\enem.stx
@@ -151,6 +156,7 @@ enem:
 
 eneh:
 	$(CP)	buseneh.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\eneh.mif
 	$(MV)	etherne.stx ..\bin\eneh.stx
@@ -158,6 +164,7 @@ eneh:
 
 enex:
 	$(CP)	busenex.i bus.i
+	$(RM) *.o *.tos *.stx *.mif
 	$(MAKE)	drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\enex.mif
 	$(MV)	etherne.stx ..\bin\enex.stx
@@ -165,7 +172,7 @@ enex:
 
 # development driver
 
-devlopment:
+development:
 	$(RM) $(OBJS)
 	$(CP) devswitd.i devswit.i	# replace the relevant include file
 	$(MAKE)

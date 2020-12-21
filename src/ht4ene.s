@@ -15,7 +15,7 @@
 
 		.INCLUDE	"uti.i"
 
-		.INCLUDE	"busenec0.i"
+		.INCLUDE	"bus.i"
 
 		MACRO putBUSr val,offset
 		move.w	#(offset)<<8,RyBUS		; move ISA address to bits 8-15

@@ -15,8 +15,6 @@
 * Tabsize 8, developed with DEVPAC assembler 2.0.				*
 *										*
 *********************************************************************************
-* $Id: busenem.i 1.1 2002/06/08 16:26:52 Thomas Exp Thomas $
-*
 
 *
 * manifest constants

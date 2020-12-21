@@ -61,8 +61,24 @@ WORD_TRANSFER	EQU	0		; if set enables 16-bit DMA
 * hardware addresses
 *
 
-ISA_BASE	EQU	$FFF30000	; ISA base address for Hades
+*ISA_BASE	EQU	$FFF30000	; ISA base address for Hades
+*ISA_BASE	EQU	$FED00000	; ISA base address for TsengET4000(Panther/2)
+*ISA_BASE	EQU	$FEC00000	; ISA base address for ATIMach64(Panther/2)
+*ISA_BASE	EQU	$FE900000	; ISA base address for ATIMach32(Panther/2)
 NE_IO_BASE	EQU	$300		; if your card is somewhere else change it.
+
+	IFEQ BUS-BUS_ISA_HADES_ET4000
+ISA_BASE EQU 0xFFF30000
+	ENDC
+	IFEQ BUS-BUS_ISA_HADES_TSENG
+ISA_BASE EQU 0xFED00000
+	ENDC
+	IFEQ BUS-BUS_ISA_HADES_MACH64
+ISA_BASE EQU 0xFEC00000
+	ENDC
+	IFEQ BUS-BUS_ISA_HADES_MACH32
+ISA_BASE EQU 0xFE900000
+	ENDC
 
 *
 * macros

@@ -9,7 +9,7 @@
 #
 
 #### Pure-C 1.1
-CC=bin\tcc.ttp
+CC=bin\pcc.ttp
 CFLAGS=-Iinclude
 
 LINK=bin\plink.ttp
@@ -49,48 +49,49 @@ drivers:	etherne.stx etherne.mif
 
 
 etherne.stx:	$(OBJS_STNG)
-	$(LINK) $(LFLAGS) -s=0 -o=$@ $(OBJS_STNG) $(LIBDIR)\tctoslib.lib
+	$(LINK) $(LFLAGS) -s=0 -o=$@ $(OBJS_STNG) $(LIBDIR)\pctoslib.lib
 
 
 etherne.mif:	$(OBJS_MNET)
 	$(LINK) $(LFLAGS) -s=0 -o=$@ $(OBJS_MNET)
 
 
-ht1ene.tos:	ht1ene.s uti.i bus.i 8390.i uti.s
-	$(AS)	$< -oht1ene.o
-	$(LINK) $(LFLAGS) -s=256 -o=$@ ht1ene.o
+ht1ene.tos:	ht1ene.o
+	$(LINK) $(LFLAGS) -s=256 -o=$@ $<
 
-ht2ene.tos:	ht2ene.s uti.i bus.i uti.s
-	$(AS)	$< -oht2ene.o
-	$(LINK) $(LFLAGS) -s=256 -o=$@ ht2ene.o
+ht2ene.tos:	ht2ene.o
+	$(LINK) $(LFLAGS) -s=256 -o=$@ $<
 
 
 ht3ene.tos:	$(OBJS_HT3)
 	$(LINK) $(LFLAGS) -s=256 -o=$@ $(OBJS_HT3)
 
 
-ht4ene.tos:	ht4enec.s uti.i busenec0.i uti.s
-	$(AS)	$< -oht4ene.o
-	$(LINK) $(LFLAGS) -s=256 -o=$@ ht4ene.o
+ht4ene.tos:	ht4ene.o uti.i bus.i uti.s
+	$(LINK) $(LFLAGS) -s=256 -o=$@ $<
 
 
 enemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i uti.i
 
 enestng.o:	$(INC_STNG)\transprt.h $(INC_STNG)\port.h ne.h uti.h devswit.h
 
-nestng.o nemnet.o ne.o ht3ene.o:	devswit.i uti.i bus.i 8390.i
+nestng.o nemnet.o ne.o:	devswit.i uti.i bus.i 8390.i
 
-nemnet.o:	$(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i
+nemnet.o:	bus.i $(INC_MNET)\buf.i $(INC_MNET)\if.i $(INC_MNET)\netinfo.i
 
-ne.o:		netdev.i
+ne.o:		netdev.i bus.i
 
 uti.o:		uti.i uti.h
 
+ht1ene.o:       ht1ene.s uti.i bus.i 8390.i uti.s 
+ht2ene.o:       ht2ene.s uti.i bus.i uti.s 
+ht3ene.o:       ht3ene.s uti.i bus.i 8390.i
+ht4ene.o:       ht4ene.s uti.i bus.i uti.s 
 
 #################################################################
 
 clean:
-	$(RM) *.tos *.stx *.mif *.o bus.i
+	$(RM) *.tos *.stx *.mif *.o
 
 
 package:
@@ -104,9 +105,8 @@ all:	eneaf eneas enec enec3 enem eneh enep2 enex
 # do the various IP stack &  hardware configurations/combinations
 
 eneaf:
-	$(CP)	buseneaf.i bus.i	# replace the bus hardware specific include file
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
+	$(MAKE)	DEFS=-DBUS=0 EXTRADEFS=-DACSI_SLOW_ACCESS=0 drivers ht1ene.tos ht2ene.tos ht3ene.tos
 	$(MV)	etherne.mif ..\bin\eneaf.mif	# save these drivers
 	$(MV)	etherne.stx ..\bin\eneaf.stx
 	$(MV)	ht1ene.tos ..\bin\ht1eneaf.tos
@@ -115,9 +115,8 @@ eneaf:
 
 
 eneas:
-	$(CP)	buseneas.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos
+	$(MAKE)	DEFS=-DBUS=0 EXTRADEFS=-DACSI_SLOW_ACCESS=1 drivers ht1ene.tos ht2ene.tos ht3ene.tos
 	$(MV)	etherne.mif ..\bin\eneas.mif
 	$(MV)	etherne.stx ..\bin\eneas.stx
 	$(MV)	ht1ene.tos ..\bin\ht1eneas.tos
@@ -126,9 +125,8 @@ eneas:
 
 
 enec:
-	$(CP)	busenec0.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht1ene.tos ht2ene.tos ht3ene.tos ht4ene.tos
+	$(MAKE)	DEFS=-DBUS=1 EXTRADEFS=-DCPU020=0 drivers ht1ene.tos ht2ene.tos ht3ene.tos ht4ene.tos
 	$(MV)	etherne.mif ..\bin\enec.mif
 	$(MV)	etherne.stx ..\bin\enec.stx
 	$(MV)	ht1ene.tos ..\bin\ht1enec.tos
@@ -138,44 +136,39 @@ enec:
 
 
 enec3:
-	$(CP)	busenec3.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers
+	$(MAKE)	DEFS=-DBUS=1 EXTRADEFS=-DCPU020=1 drivers
 	$(MV)	etherne.mif ..\bin\enec3.mif
 	$(MV)	etherne.stx ..\bin\enec3.stx
 
 
 enem:
-	$(CP)	busenem.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht2ene.tos
+	$(MAKE)	DEFS=-DBUS=2 drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\enem.mif
 	$(MV)	etherne.stx ..\bin\enem.stx
 	$(MV)	ht2ene.tos ..\bin\ht2enem.tos
 
 
 eneh:
-	$(CP)	buseneh.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht2ene.tos
+	$(MAKE)	DEFS=-DBUS=3 drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\eneh.mif
 	$(MV)	etherne.stx ..\bin\eneh.stx
 	$(MV)	ht2ene.tos ..\bin\ht2eneh.tos
 
 
 enep2:
-	$(CP)	busenep2.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht2ene.tos
+	$(MAKE)	DEFS=-DBUS=6 drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\enep2.mif
 	$(MV)	etherne.stx ..\bin\enep2.stx
 	$(MV)	ht2ene.tos ..\bin\ht2enep2.tos
 
 
 enex:
-	$(CP)	busenex.i bus.i
 	$(RM) *.o *.tos *.stx *.mif
-	$(MAKE)	drivers ht2ene.tos
+	$(MAKE)	DEFS=-DBUS=7 drivers ht2ene.tos
 	$(MV)	etherne.mif ..\bin\enex.mif
 	$(MV)	etherne.stx ..\bin\enex.stx
 	$(MV)	ht2ene.tos ..\bin\ht2enex.tos
@@ -200,7 +193,7 @@ production:
 
 # order of file and option specific to DEVPAC assembler
 .s.o:
-	$(AS) $< $(AFLAGS)
+	$(AS) $< $(AFLAGS) $(DEFS) $(EXTRADEFS)
 
 .c.o:
 	$(CC) $(CFLAGS) $<

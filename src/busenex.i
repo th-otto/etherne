@@ -147,7 +147,7 @@ RdBUS		EQU	a6
 		.LOCAL Rb1
 		.LOCAL doNothing_ram2ne
 		ext.l	count			; clear upper word
-		ble.w	doNothing_ram2ne		; nothing to do? ; XXX
+		ble	doNothing_ram2ne	; nothing to do?
 	IFNE	WORD_TRANSFER
 		move.l	count,d0
 		lsr.l	#1,count

@@ -84,10 +84,10 @@ ISA_BASE EQU 0xFE900000
 * macros
 *
 
-		MACRO lockBUS.size doNothing
+		MACRO lockBUS doNothing
 		moveq	#-1,d0			; preset error code
 		tas	DVS+lcl_irqlock		; check for race about Cartrige Port and
-		bne.size	doNothing       ; if somebody owns the bus we quit
+		bne	doNothing       ; if somebody owns the bus we quit
 		ENDM
 
 
@@ -177,7 +177,7 @@ RdBUS		EQU	a6			; used temporarily
 		.LOCAL Rb2
 		.LOCAL doNothing_ram2ne
 		ext.l	count			; clear upper word
-		ble.w	doNothing_ram2ne	; nothing to do? ; XXX
+		ble	doNothing_ram2ne	; nothing to do?
 
 		lea	(NE_DATAPORT)(RcBUS),RdBUS
 

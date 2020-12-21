@@ -52,44 +52,43 @@ myStart:
 * write to ISA data lines and read back
 		PrS	header
 
-		; move	#$00,d1 ; XXX
-		.dc.w 0x323c,0
+		moveq	#$00,d1
 		bsr	outAux
 * LIST -
 		not	d1
 		bsr	outAux
 
-		move	#$01,d1
+		moveq	#$01,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$02,d1
+		moveq	#$02,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$04,d1
+		moveq	#$04,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$08,d1
+		moveq	#$08,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$10,d1
+		moveq	#$10,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$20,d1
+		moveq	#$20,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux
 
-		move	#$40,d1
+		moveq	#$40,d1
 		bsr	outAux
 		not	d1
 		bsr	outAux

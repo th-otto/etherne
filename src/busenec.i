@@ -152,7 +152,7 @@ RdBUS		EQU	a6
 		.LOCAL doNothing_ram2ne
 		ext.l	count			; clear upper word
 		subq.w	#2,count			; first two puts are outside loop
-		ble.w	doNothing_ram2ne		; nothing to do? ; XXX
+		ble	doNothing_ram2ne		; nothing to do?
 		putBUS	(addr)+,NE_DATAPORT
 		putMore	(addr)+,NE_DATAPORT
 

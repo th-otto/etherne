@@ -246,7 +246,7 @@ c1_dgram:	move.w	ipLength(a2),d0
 		jsr	(a0)
 		addq.w	#4,a7			; pop arg
 		move.l	d0,sgPkt_data(a2)	; attach pkt data block
-		beq.w	err4_dgram			; KRmalloc failed? ; XXX
+		beq		err4_dgram			; KRmalloc failed?
 
 		movea.l	d0,a0			; ^pkt_data
 		move.w	sgPkt_length(a2),d1	; pkt_length in bytes
@@ -413,19 +413,18 @@ c1_pckt:
 	IFNE	WORD_TRANSFER
 		getBUSW	NE_DATAPORT,d0			; get type
 		cmp.w	#EthCTypeIP,d0			; IP packet?
-		beq.w	IP_dgram                ; XXX
+		beq		IP_dgram
 		cmp.w	#EthCTypeARP,d0			; ARP packet?
-		beq.w	ARP_dgram                ; XXX
+		beq		ARP_dgram
 	ELSE
 		getBUS	NE_DATAPORT,d0			; get type hi byte
 		cmp.b	#EthCTypeIPARPHi,d0
-		bne.w	err_pckt                ; XXX
+		bne		err_pckt
 		getMore	NE_DATAPORT,d0			; get type lo byte
-		; cmp.b	#EthCTypeIPLo,d0		; IP packet?
-		.dc.w 0xb03c,0                  ; XXX
-		beq.w	IP_dgram                ; XXX
+		cmp.b	#EthCTypeIPLo,d0		; IP packet?
+		beq		IP_dgram
 		cmp.b	#EthCTypeARPLo,d0		; ARP packet?
-		beq.w	ARP_dgram				; if not it is an error                ; XXX
+		beq		ARP_dgram				; if not it is an error
 	ENDC
 
 
@@ -452,7 +451,7 @@ err1_pckt:
 		putBUSi	E8390_NODMA+E8390_START,E8390_CMD	; abort remote DMA
 		getBUS	NE_DATAPORT,d1			; only this makes for a proper abort !!!
 		putBUSi	(1<<ENISR_RDC),EN0_ISR		; reset remote DMA ready bit
-		bra.w	exit_pckt                ; XXX
+		bra		exit_pckt
 
 
 ARP_dgram:

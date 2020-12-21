@@ -418,12 +418,12 @@ t1_interrupt:
 		PrS	crlf(pc)
 	ENDC
 		bsr	ei_rx_overrun
-		bra.w	c2_interrupt			; this did ei_receive already; XXX
+		bra	c2_interrupt			; this did ei_receive already
 
 
 c1_interrupt:
 		btst	#ENISR_RX,RitInts	; got a good packet?
-		beq.w	c11_interrupt          ; XXX
+		beq	c11_interrupt
 
 	IFGE	RXDEBPRT-4
 		PrL	_hz_200.w
@@ -439,7 +439,7 @@ c1_interrupt:
 
 c11_interrupt:
 		btst	#ENISR_RX_ERR,RitInts	; RX with error?
-		beq.w	c2_interrupt            ; XXX
+		beq	c2_interrupt
 
 	IFGE	RXDEBPRT-4
 		PrL	_hz_200.w
@@ -563,8 +563,6 @@ c1_tx_err:
 		IFGE	TXDEBPRT-1
 		beq.b	c2_tx_err
 		PrS	m2_tx_err(pc)
-		ELSE
-		nop     ; XXX
 		ENDC
 
 c2_tx_err:
@@ -807,21 +805,21 @@ t0_receive:		getBUS	EN1_CURPAG,d0
 		move.b	rxHdrSts(sp),d0
 		andi.b	#$ff-ENRSR_PHY-ENRSR_DEF,d0	; do not care phys/multi., defer.
 		cmp.b	#ENRSR_RXOK,d0			; only his should be set
-		bne.w	err_receive             ; XXX
+		bne		err_receive
 
 * check if next frame is within start and stop
 		cmp.b	lcl_rx_start_page(RitDVS),RrxNextFrm
-		bcs.w	err_receive             ; XXX
+		bcs		err_receive
 		cmp.b	lcl_stop_page(RitDVS),RrxNextFrm
-		bhi.w	err_receive             ; XXX
+		bhi		err_receive
 
 * we should also check here if CountHi is consistent with NextFrm and ReadPg (sic!)
 
 * check for good ethernet packet length
 		cmp	#64,RrxPktLen			; check for bogus length
-		bcs.w	err_receive             ; XXX
+		bcs		err_receive
 		cmp	#1518,RrxPktLen			; 6(eth)+6(eth)+2(type)+1500+4(crc)
-		bhi.w	err_receive             ; XXX
+		bhi		err_receive
 
 
 getPkt:
@@ -1069,7 +1067,7 @@ Rgs		REG	RxBUS/RyBUS/RgsDVS/RcBUS/RdBUS
 get_stats:
 		movem.l	#Rgs,-(sp)
 		lea	DVS,RgsDVS
-		lockBUS.w doNothing_stats				; aquire Bus ; XXX
+		lockBUS doNothing_stats				; aquire Bus
 						; jumps to .doNothing on fail to lock
 		ldBUSRegs			; load registers to access Bus
 
